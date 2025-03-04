@@ -31,6 +31,7 @@ const Blackjack = () => {
   const [draggedCardIndex, setDraggedCardIndex] = useState(null);
   const [dragSourceType, setDragSourceType] = useState(null); // 'player' or 'consumable'
   const [draggedTarotCardIndex, setDraggedTarotCardIndex] = useState(null);
+  const [draggedCard, setDraggedCard] = useState(null); // Store the card being dragged
   
   // Define tarot cards
   const tarotCardDefinitions = [
@@ -162,10 +163,6 @@ const Blackjack = () => {
           removedCardsRef.current.add(card.id);
         });
         
-        // Log the removal for debugging
-        console.log(`Permanently removed cards: ${cardsToRemove.map(c => c.id).join(', ')}`);
-        console.log(`Total permanently removed cards: ${removedCardsRef.current.size}`);
-        
         // Create a new player hand without the selected cards
         const newHand = [...playerHand];
         sortedSelection.forEach(index => {
@@ -211,10 +208,6 @@ const Blackjack = () => {
     // Reset the deck and dealt cards tracking, but maintain removed cards
     deckRef.current = shuffled;
     dealtCardsRef.current = new Set();
-    
-    // Log deck status including removed cards
-    console.log(`Starting new round with fresh deck (${shuffled.length} cards)`);
-    console.log(`Permanently removed cards: ${removedCardsRef.current.size}`);
     
     // Delay to show shuffling animation
     setTimeout(() => {
@@ -273,14 +266,6 @@ const Blackjack = () => {
     const pInitialHand = [pCard1, pCard2];
     const dInitialHand = [dCard1, dCard2];
     
-    // Verify no duplicate cards were dealt
-    const dealtCardIds = [pCard1.id, pCard2.id, dCard1.id, dCard2.id];
-    const uniqueIds = new Set(dealtCardIds);
-    
-    if (uniqueIds.size !== dealtCardIds.length) {
-      console.error("DUPLICATE DETECTION: Initial cards contain duplicates!", dealtCardIds);
-    }
-    
     // Calculate initial scores
     const pScore = calculateScore(pInitialHand);
     const dScore = calculateScore([dInitialHand[0]]); // Only count visible dealer card
@@ -330,11 +315,10 @@ const Blackjack = () => {
       dealtCardsRef.current = new Set();
     }
     
-    // Find the first card that hasn't been dealt yet
+    // Find a card that hasn't been dealt yet and hasn't been permanently removed
     let cardIndex = 0;
     let card;
     
-    // Find a card that hasn't been dealt yet and hasn't been permanently removed
     while (cardIndex < deckRef.current.length) {
       const candidate = deckRef.current[cardIndex];
       if (!dealtCardsRef.current.has(candidate.id) && !removedCardsRef.current.has(candidate.id)) {
@@ -343,8 +327,6 @@ const Blackjack = () => {
         
         // Remove card from deck
         deckRef.current.splice(cardIndex, 1);
-        
-        console.log(`Dealt card: ${card.id}, Remaining in deck: ${deckRef.current.length}`);
         break;
       }
       cardIndex++;
@@ -672,6 +654,7 @@ const Blackjack = () => {
     if (type === 'player') {
       setDraggedCardIndex(index);
       setDragSourceType('player');
+      setDraggedCard(playerHand[index]); // Store the card being dragged
       e.dataTransfer.setData('text/plain', `player-${index}`);
     } else if (type === 'consumable') {
       setDraggedTarotCardIndex(index);
@@ -681,13 +664,51 @@ const Blackjack = () => {
     
     setIsDragging(true);
     
-    // Add a custom drag image/ghost (optional)
-    const dragEl = document.createElement('div');
-    dragEl.textContent = type === 'player' ? '🃏' : '🔮';
-    dragEl.style.fontSize = '36px';
-    document.body.appendChild(dragEl);
-    e.dataTransfer.setDragImage(dragEl, 20, 20);
-    setTimeout(() => document.body.removeChild(dragEl), 0);
+    // Make dragging more responsive with a custom ghost image
+    if (type === 'player') {
+      // Create a custom drag image/ghost that's full-sized
+      const dragEl = document.createElement('div');
+      dragEl.className = 'card-ghost';
+      dragEl.style.width = '112px'; // w-28 in pixels
+      dragEl.style.height = '160px'; // h-40 in pixels
+      dragEl.style.background = 'white';
+      dragEl.style.border = '2px solid #4299e1';
+      dragEl.style.borderRadius = '8px';
+      dragEl.style.display = 'flex';
+      dragEl.style.alignItems = 'center';
+      dragEl.style.justifyContent = 'center';
+      dragEl.style.fontSize = '24px';
+      dragEl.style.color = playerHand[index].color === 'text-red-600' ? '#e53e3e' : '#000';
+      dragEl.style.position = 'absolute';
+      dragEl.style.top = '-1000px';
+      dragEl.style.opacity = '0.9';
+      dragEl.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+      
+      const cardContent = document.createElement('div');
+      cardContent.style.display = 'flex';
+      cardContent.style.flexDirection = 'column';
+      cardContent.style.alignItems = 'center';
+      
+      const cardValue = document.createElement('div');
+      cardValue.textContent = playerHand[index].value;
+      cardValue.style.fontSize = '36px';
+      cardValue.style.fontWeight = 'bold';
+      
+      const cardSuit = document.createElement('div');
+      cardSuit.textContent = playerHand[index].suit;
+      cardSuit.style.fontSize = '48px';
+      
+      cardContent.appendChild(cardValue);
+      cardContent.appendChild(cardSuit);
+      dragEl.appendChild(cardContent);
+      
+      document.body.appendChild(dragEl);
+      e.dataTransfer.setDragImage(dragEl, 56, 80); // Center the drag image
+      
+      setTimeout(() => {
+        document.body.removeChild(dragEl);
+      }, 0);
+    }
   };
   
   // Handle drag over
@@ -732,6 +753,7 @@ const Blackjack = () => {
     setDraggedCardIndex(null);
     setDraggedTarotCardIndex(null);
     setDragSourceType(null);
+    setDraggedCard(null);
   };
   
   // Handle drop for tarot card usage
@@ -753,6 +775,7 @@ const Blackjack = () => {
     setDraggedCardIndex(null);
     setDraggedTarotCardIndex(null);
     setDragSourceType(null);
+    setDraggedCard(null);
   };
   
   // Toggle info panel
@@ -760,42 +783,20 @@ const Blackjack = () => {
     setShowInfo(!showInfo);
   };
   
-  // Debug function to check current game state
+  // Initialize the game
   useEffect(() => {
-    if (playerHand.length > 0 || dealerHand.length > 0) {
-      const allCardIds = [
-        ...playerHand.filter(c => c).map(c => c.id),
-        ...dealerHand.filter(c => c).map(c => c.id)
-      ].filter(id => id); // Filter out any undefined IDs
-      
-      const uniqueCardIds = new Set(allCardIds);
-      
-      // Log current state
-      console.log("Game state:", {
-        playerCards: playerHand.filter(c => c).map(c => c.id),
-        dealerCards: dealerHand.filter(c => c).map(c => c.id),
-        remainingCards: deckRef.current.length,
-        usedCards: dealtCardsRef.current.size
-      });
-      
-      // Check for duplicate cards
-      if (uniqueCardIds.size !== allCardIds.length) {
-        console.error("DUPLICATE CARDS DETECTED IN PLAY!");
-        
-        // Find which cards are duplicated
-        const cardCounts = {};
-        allCardIds.forEach(id => {
-          cardCounts[id] = (cardCounts[id] || 0) + 1;
-        });
-        
-        const duplicates = Object.entries(cardCounts)
-          .filter(([_, count]) => count > 1)
-          .map(([id]) => id);
-        
-        console.error("Duplicate cards:", duplicates);
-      }
-    }
-  }, [playerHand, dealerHand]);
+    console.log("Initializing new game");
+    startNewRound();
+    
+    // Add error listener
+    window.addEventListener('error', (event) => {
+      console.error('Caught error:', event.message);
+    });
+    
+    return () => {
+      window.removeEventListener('error', () => {});
+    };
+  }, []);
   
   // Remove animation flag from cards
   useEffect(() => {
@@ -816,21 +817,6 @@ const Blackjack = () => {
       return () => clearTimeout(timer);
     }
   }, [playerHand, dealerHand, animationIndex]);
-  
-  // Initialize the game
-  useEffect(() => {
-    console.log("Initializing new game");
-    startNewRound();
-    
-    // Add error listener
-    window.addEventListener('error', (event) => {
-      console.error('Caught error:', event.message);
-    });
-    
-    return () => {
-      window.removeEventListener('error', () => {});
-    };
-  }, []);
   
   // Render a card
   const renderCard = (card, index, hand) => {
@@ -860,12 +846,12 @@ const Blackjack = () => {
         onDragOver={handleDragOver}
         onDrop={(e) => isPlayerHand && handleDrop(e, index)}
         className={`relative flex items-center justify-center w-28 h-40 border-2 border-gray-300 rounded-lg shadow-md overflow-hidden
-          ${isPlayerHand && gameState === 'playing' ? 'cursor-pointer hover:border-blue-500' : ''} 
-          ${isSelected ? 'border-yellow-400 border-4' : ''}
+          ${isPlayerHand && gameState === 'playing' ? 'cursor-grab active:cursor-grabbing hover:border-blue-500' : ''} 
+          ${isSelected ? 'border-yellow-400 border-4 shadow-lg' : ''}
           ${getTilt()}
           ${isNewCard ? 'animate-deal' : ''}
           ${isDragging && draggedCardIndex === index ? 'opacity-50' : ''}
-          transition-all duration-150`}
+          transition-all duration-200 ease-in-out hover:shadow-xl`}
         style={{ 
           margin: '-0.5rem',
           transformOrigin: 'center bottom',
@@ -894,7 +880,7 @@ const Blackjack = () => {
       return (
         <div 
           key={`tarot-empty-${index}`}
-          className="relative w-24 h-36 border-2 border-gray-300 border-dashed rounded-lg bg-gray-100 bg-opacity-20 flex items-center justify-center"
+          className="relative w-24 h-36 border-2 border-gray-300 border-dashed rounded-lg bg-gray-100 bg-opacity-20 flex items-center justify-center mb-4 shadow-md"
         >
           <span className="text-white opacity-50 text-lg">Empty</span>
         </div>
@@ -904,7 +890,7 @@ const Blackjack = () => {
     return (
       <div 
         key={`tarot-${card.id}`}
-        className="relative w-24 h-36 border-2 border-yellow-600 rounded-lg overflow-hidden cursor-grab bg-purple-900 shadow-lg"
+        className="relative w-24 h-36 border-2 border-yellow-600 rounded-lg overflow-hidden cursor-grab bg-purple-900 shadow-lg mb-4 hover:shadow-xl transition-all duration-200 active:scale-95"
         draggable={gameState === 'playing'}
         onDragStart={(e) => handleDragStart(e, index, 'consumable')}
         onClick={() => gameState === 'playing' && useTarotCard(index)}
@@ -977,7 +963,7 @@ const Blackjack = () => {
           <h2 className="text-3xl font-bold text-white">Modified Blackjack Rules</h2>
           <button 
             onClick={toggleInfo}
-            className="text-white hover:text-yellow-300"
+            className="text-white hover:text-yellow-300 transition-colors"
           >
             <X size={32} />
           </button>
@@ -1033,8 +1019,24 @@ const Blackjack = () => {
     </div>
   );
 
+  // Dragged card preview overlay for more responsive drag and drop
+  const DraggedCardPreview = () => {
+    if (!isDragging || !draggedCard) return null;
+    
+    return (
+      <div className="fixed top-0 left-0 z-50 pointer-events-none opacity-0">
+        <div className="w-28 h-40 bg-white border-2 border-blue-500 rounded-lg shadow-xl flex items-center justify-center">
+          <div className={`flex flex-col items-center ${draggedCard.color}`}>
+            <div className="text-3xl font-bold">{draggedCard.value}</div>
+            <div className="text-4xl">{draggedCard.suit}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="flex flex-col items-center py-6 px-4 bg-green-800 text-white min-h-screen w-full">
+    <div className="relative bg-green-800 text-white min-h-screen w-full overflow-hidden">
       <style jsx global>{`
         @keyframes dealCard {
           0% {
@@ -1064,198 +1066,209 @@ const Blackjack = () => {
           100% { transform: rotate(0deg); }
         }
         .animate-deal {
-          animation: dealCard 0.5s ease-out;
+          animation: dealCard 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .animate-discard {
-          animation: discardCard 0.5s ease-in;
+          animation: discardCard 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .animate-shuffle {
           animation: shuffle 0.8s ease-in-out;
         }
+        .card-lift {
+          transition: transform 0.2s ease;
+        }
+        .card-lift:hover {
+          transform: translateY(-8px);
+        }
       `}</style>
       
-      <div className="flex items-center mb-4">
-        <h1 className="text-4xl font-bold">Blackjack</h1>
-        <button 
-          onClick={toggleInfo}
-          className="ml-4 bg-yellow-600 hover:bg-yellow-700 text-white rounded-full p-2 transition-colors"
-          title="Game Rules"
-        >
-          <Info size={24} />
-        </button>
-      </div>
-      
-      {/* Scoreboard */}
-      <div className="flex justify-between w-full max-w-6xl mb-6 gap-4">
-        <div className="bg-blue-900 p-4 rounded-lg flex flex-col items-center flex-1">
-          <div className="font-bold text-lg">Current Score</div>
-          <div className="text-3xl">{wins}</div>
-        </div>
-        
-        <div className="bg-blue-900 p-4 rounded-lg flex flex-col items-center flex-1">
-          <div className="font-bold text-lg">Winning Streak</div>
-          <div className="text-3xl">{winningStreak}</div>
-        </div>
-        
-        <div className="bg-blue-900 p-4 rounded-lg flex flex-col items-center flex-1">
-          <div className="font-bold text-lg">Discard Tokens</div>
-          <div className="text-3xl">{discardTokens}</div>
-        </div>
-        
-        <div className="bg-blue-900 p-4 rounded-lg flex flex-col items-center flex-1">
-          <div className="font-bold text-lg">Wins Until Tarot</div>
-          <div className="text-3xl">{tarotDrawCounter}</div>
-        </div>
-      </div>
-      
-      {/* Consumable slots */}
-      <div className="w-full max-w-6xl bg-purple-900 bg-opacity-50 rounded-lg p-6 shadow-lg mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Tarot Cards</h2>
-          <div className="text-sm text-yellow-300">
-            Drag to use or click to activate
-          </div>
-        </div>
-        
-        <div 
-          className="flex justify-center gap-6"
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleTarotDrop(e, 'playArea')}
-        >
-          {consumableSlots.map((card, index) => renderTarotCard(card, index))}
-        </div>
-      </div>
-      
-      {/* Game area */}
-      <div 
-        className="w-full max-w-6xl bg-green-700 rounded-lg p-8 shadow-lg mb-6 relative min-h-[500px]"
-        onDragOver={handleDragOver}
-        onDrop={(e) => handleTarotDrop(e, 'playArea')}
-      >
-        {/* Deck visualization - moved to bottom left corner */}
-        <div 
-          className={`absolute bottom-6 left-6 w-20 h-32 border-2 border-white rounded-lg shadow-md overflow-hidden ${isShuffling ? 'animate-shuffle' : ''}`}
-        >
-          {/* Card stack effect */}
-          <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(2deg)' }}>
-            <CardBackPattern />
-          </div>
-          <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(-2deg)' }}>
-            <CardBackPattern />
-          </div>
-          <div className="absolute inset-0 rounded-lg">
-            <CardBackPattern />
-          </div>
-          <div className="absolute bottom-0 left-0 text-sm text-white p-1 z-10">
-            {deckRef.current.length - removedCardsRef.current.size}
-          </div>
-        </div>
-        
-        {/* Dealer area */}
-        <div className="mb-8">
-          <div className="flex justify-between mb-4">
-            <h2 className="text-2xl font-bold">Dealer</h2>
-            <div className="bg-white text-black px-3 py-1 rounded text-lg">Score: {dealerScore}</div>
-          </div>
-          
-          <div className="flex justify-center min-h-[180px]">
-            {dealerHand.filter(card => card).map((card, index) => renderCard(card, index, 'dealer'))}
-          </div>
-        </div>
-        
-        {/* Message area */}
-        <div className="text-center py-4 mb-6 bg-green-900 rounded-lg">
-          <p className="text-2xl">{message}</p>
-        </div>
-        
-        {/* Player area */}
-        <div>
-          <div className="flex justify-between mb-4">
-            <h2 className="text-2xl font-bold">Player</h2>
-            <div className={`px-3 py-1 rounded text-lg ${playerScore > 21 ? 'bg-red-500' : 'bg-white text-black'}`}>
-              Score: {playerScore} {playerScore > 21 && '(Bust)'}
-            </div>
-          </div>
-          
-          <div className="flex justify-center min-h-[180px]">
-            {playerHand.filter(card => card).map((card, index) => renderCard(card, index, 'player'))}
-          </div>
-        </div>
-        
-        {/* Animating cards overlay */}
-        {animatingCards.map(card => (
-          <div 
-            key={card.id}
-            className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-28 h-40 bg-white border-2 border-gray-300 rounded-lg shadow-md animate-discard`}
+      {/* Header with title and info button */}
+      <div className="flex justify-between items-center p-4 bg-green-900">
+        <h1 className="text-3xl font-bold">Blackjack</h1>
+        <div className="flex items-center">
+          <button 
+            onClick={toggleInfo}
+            className="ml-4 bg-yellow-600 hover:bg-yellow-700 text-white rounded-full p-2 transition-colors"
+            title="Game Rules"
           >
-            <div className={`flex flex-col items-center ${card.color}`}>
-              <div className="text-3xl font-bold">{card.value}</div>
-              <div className="text-4xl">{card.suit}</div>
+            <Info size={24} />
+          </button>
+        </div>
+      </div>
+      
+      {/* Main gameplay area - using grid layout for better space utilization */}
+      <div className="grid grid-cols-12 gap-4 p-4 h-full">
+        {/* Left side: Game history */}
+        <div className="col-span-2">
+          {/* Scoreboard - compact version */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="bg-blue-900 p-2 rounded-lg text-center">
+              <div className="text-sm font-bold">Score</div>
+              <div className="text-2xl">{wins}</div>
+            </div>
+            
+            <div className="bg-blue-900 p-2 rounded-lg text-center">
+              <div className="text-sm font-bold">Streak</div>
+              <div className="text-2xl">{winningStreak}</div>
+            </div>
+            
+            <div className="bg-blue-900 p-2 rounded-lg text-center">
+              <div className="text-sm font-bold">Tokens</div>
+              <div className="text-2xl">{discardTokens}</div>
+            </div>
+            
+            <div className="bg-blue-900 p-2 rounded-lg text-center">
+              <div className="text-sm font-bold">Till Tarot</div>
+              <div className="text-2xl">{tarotDrawCounter}</div>
             </div>
           </div>
-        ))}
-      </div>
-      
-      {/* Controls */}
-      <div className="flex justify-center space-x-6 mb-8">
-        {gameState === 'playing' && (
-          <>
-            <button
-              onClick={hit}
-              disabled={playerScore >= 32}
-              className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-xl focus:outline-none transition-transform active:scale-95 ${playerScore >= 32 ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              Hit
-            </button>
-            <button
-              onClick={stand}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-xl focus:outline-none transition-transform active:scale-95"
-            >
-              Stand
-            </button>
-            <button
-              onClick={discardSelectedCard}
-              disabled={discardTokens <= 0 || selectedCards.length !== 1}
-              className={`flex items-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg text-xl focus:outline-none transition-transform active:scale-95 ${(discardTokens <= 0 || selectedCards.length !== 1) ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <Shield size={20} className="mr-2" /> Discard ({discardTokens})
-            </button>
-            {selectedCards.length > 0 && (
-              <div className="text-white text-xl flex items-center">
-                {selectedCards.length === 1 ? "1 card selected" : `${selectedCards.length} cards selected`}
+          
+          {/* Game history - compact version */}
+          {gameHistory.length > 0 && (
+            <div className="bg-gray-800 rounded-lg p-2 shadow-lg mb-4 overflow-hidden">
+              <h2 className="text-lg font-bold mb-2 border-b border-gray-700 pb-1">Game History</h2>
+              <div className="max-h-72 overflow-y-auto text-xs">
+                {gameHistory.map((game, index) => (
+                  <div key={index} className="border-b border-gray-700 py-1 flex flex-col">
+                    <div className={game.winner === 'Player' ? 'text-green-400' : game.winner === 'Dealer' ? 'text-red-400' : 'text-yellow-400'}>
+                      {game.winner} {game.winner !== 'Push' && 'wins'} ({game.reason})
+                    </div>
+                    <div className="text-gray-400">
+                      P: {game.playerScore} | D: {game.dealerScore}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </>
-        )}
-      </div>
-      
-      {/* Selected cards info */}
-      {gameState === 'playing' && (
-        <div className="text-yellow-400 mb-6 text-lg">
-          {selectedCards.length === 1 && "Selected 1 card for discard"}
-          {selectedCards.length === 2 && "Selected 2 cards for tarot effects"}
-          {selectedCards.length > 2 && `Selected ${selectedCards.length} cards (only 1 for discard or 2 for tarot effects)`}
-        </div>
-      )}
-      
-      {/* Game history */}
-      {gameHistory.length > 0 && (
-        <div className="w-full max-w-6xl">
-          <h2 className="text-2xl font-bold mb-3">Game History</h2>
-          <div className="bg-gray-800 rounded-lg p-4 max-h-60 overflow-y-auto">
-            {gameHistory.map((game, index) => (
-              <div key={index} className="border-b border-gray-700 py-2 flex justify-between text-base">
-                <div className={game.winner === 'Player' ? 'text-green-400' : game.winner === 'Dealer' ? 'text-red-400' : 'text-yellow-400'}>
-                  {game.winner} {game.winner !== 'Push' && 'wins'} ({game.reason})
-                </div>
-                <div>
-                  Player: {game.playerScore} | Dealer: {game.dealerScore}
-                </div>
+            </div>
+          )}
+          
+          {/* Deck visualization */}
+          <div 
+            className={`w-full flex justify-center mb-4 ${isShuffling ? 'animate-shuffle' : ''}`}
+          >
+            <div className="relative w-20 h-32 border-2 border-white rounded-lg shadow-md overflow-hidden">
+              {/* Card stack effect */}
+              <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(2deg)' }}>
+                <CardBackPattern />
               </div>
-            ))}
+              <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(-2deg)' }}>
+                <CardBackPattern />
+              </div>
+              <div className="absolute inset-0 rounded-lg">
+                <CardBackPattern />
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 text-sm text-white p-1 z-10 text-center bg-black bg-opacity-50">
+                {deckRef.current.length - removedCardsRef.current.size} cards
+              </div>
+            </div>
           </div>
         </div>
-      )}
+        
+        {/* Center: Main game area */}
+        <div className="col-span-8 bg-green-700 rounded-lg p-4 shadow-lg flex flex-col">
+          {/* Dealer area */}
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-bold">Dealer</h2>
+              <div className="bg-white text-black px-3 py-1 rounded text-lg">Score: {dealerScore}</div>
+            </div>
+            
+            <div className="flex justify-center min-h-[160px] items-center">
+              {dealerHand.filter(card => card).map((card, index) => renderCard(card, index, 'dealer'))}
+            </div>
+          </div>
+          
+          {/* Message area */}
+          <div className="text-center py-2 mb-4 bg-green-900 rounded-lg">
+            <p className="text-xl">{message}</p>
+          </div>
+          
+          {/* Player area */}
+          <div className="flex-grow">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-bold">Player</h2>
+              <div className={`px-3 py-1 rounded text-lg ${playerScore > 21 ? 'bg-red-500' : 'bg-white text-black'}`}>
+                Score: {playerScore} {playerScore > 21 && '(Bust)'}
+              </div>
+            </div>
+            
+            <div 
+              className="flex justify-center min-h-[160px] items-center mb-4"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleTarotDrop(e, 'playArea')}
+            >
+              {playerHand.filter(card => card).map((card, index) => renderCard(card, index, 'player'))}
+            </div>
+            
+            {/* Controls */}
+            <div className="flex justify-center space-x-4 mt-auto">
+              {gameState === 'playing' && (
+                <>
+                  <button
+                    onClick={hit}
+                    disabled={playerScore >= 32}
+                    className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-lg focus:outline-none transition-all duration-200 active:scale-95 ${playerScore >= 32 ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                  >
+                    Hit
+                  </button>
+                  <button
+                    onClick={stand}
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-lg focus:outline-none transition-all duration-200 active:scale-95 hover:shadow-lg"
+                  >
+                    Stand
+                  </button>
+                  <button
+                    onClick={discardSelectedCard}
+                    disabled={discardTokens <= 0 || selectedCards.length !== 1}
+                    className={`flex items-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg text-lg focus:outline-none transition-all duration-200 active:scale-95 ${(discardTokens <= 0 || selectedCards.length !== 1) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                  >
+                    <Shield size={20} className="mr-2" /> Discard ({discardTokens})
+                  </button>
+                  {selectedCards.length > 0 && (
+                    <div className="text-white text-lg flex items-center bg-gray-800 px-3 py-1 rounded-lg">
+                      {selectedCards.length === 1 ? "1 card selected" : `${selectedCards.length} cards selected`}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Right side: Tarot cards (vertical layout) */}
+        <div className="col-span-2">
+          <div className="bg-purple-900 bg-opacity-50 rounded-lg p-4 shadow-lg">
+            <h2 className="text-xl font-bold mb-3">Tarot Cards</h2>
+            <div className="text-sm text-yellow-300 mb-4">
+              Drag to use or click to activate
+            </div>
+            
+            <div 
+              className="flex flex-col items-center"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleTarotDrop(e, 'tarotArea')}
+            >
+              {consumableSlots.map((card, index) => renderTarotCard(card, index))}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Animating cards overlay */}
+      {animatingCards.map(card => (
+        <div 
+          key={card.id}
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-28 h-40 bg-white border-2 border-gray-300 rounded-lg shadow-xl animate-discard z-50"
+        >
+          <div className={`flex flex-col items-center ${card.color}`}>
+            <div className="text-3xl font-bold">{card.value}</div>
+            <div className="text-4xl">{card.suit}</div>
+          </div>
+        </div>
+      ))}
+      
+      {/* Dragged card preview - for better drag and drop feedback */}
+      <DraggedCardPreview />
       
       {/* Info Panel */}
       {showInfo && <InfoPanel />}
