@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, RefreshCw, X, Info, Award, Trash2 } from 'lucide-react';
+import { Shield, RefreshCw, X, Info, Award, Trash2, ShoppingCart, Coins, PlusCircle } from 'lucide-react';
 
 const Blackjack = () => {
   // Game state
@@ -21,6 +21,11 @@ const Blackjack = () => {
   const [animationIndex, setAnimationIndex] = useState(0);
   const [selectedCards, setSelectedCards] = useState([]);
   const [showInfo, setShowInfo] = useState(false);
+  
+  // Shop system state
+  const [coins, setCoins] = useState(10); // Starting with 10 coins to let the player buy something immediately
+  const [shopItems, setShopItems] = useState([]);
+  const [discardsUsed, setDiscardsUsed] = useState(false);
   
   // Tarot-specific state
   const [tarotDrawCounter, setTarotDrawCounter] = useState(5);
@@ -85,6 +90,94 @@ const Blackjack = () => {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
+  };
+  
+  // Generate shop items
+  const generateShopItems = () => {
+    const suits = ['♥', '♦', '♠', '♣'];
+    const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    const newShopItems = [];
+    
+    // Generate 3 random playing cards
+    for (let i = 0; i < 3; i++) {
+      const randomSuit = suits[Math.floor(Math.random() * suits.length)];
+      const randomValue = values[Math.floor(Math.random() * values.length)];
+      const isAce = randomValue === 'A';
+      
+      newShopItems.push({
+        type: 'card',
+        value: randomValue,
+        suit: randomSuit,
+        color: randomSuit === '♥' || randomSuit === '♦' ? 'text-red-600' : 'text-black',
+        price: isAce ? 4 : 2,
+        id: `shop-${randomValue}-${randomSuit}-${Date.now()}-${i}`
+      });
+    }
+    
+    // Add 1 random tarot card
+    const randomTarotIndex = Math.floor(Math.random() * tarotCardDefinitions.length);
+    newShopItems.push({
+      type: 'tarot',
+      tarotCard: tarotCardDefinitions[randomTarotIndex],
+      price: 5,
+      id: `shop-tarot-${tarotCardDefinitions[randomTarotIndex].id}-${Date.now()}`
+    });
+    
+    // Add discard tokens
+    newShopItems.push({
+      type: 'token',
+      amount: 1,
+      price: 3,
+      id: `shop-token-${Date.now()}`
+    });
+    
+    return newShopItems;
+  };
+  
+  // Buy item from shop
+  const buyShopItem = (item) => {
+    if (coins < item.price) {
+      setMessage("Not enough coins to buy this item!");
+      return;
+    }
+    
+    // Process purchase based on item type
+    if (item.type === 'card') {
+      // Add card to deck
+      const newCard = {
+        suit: item.suit,
+        value: item.value,
+        hidden: false,
+        color: item.color,
+        id: `${item.value}-${item.suit}-purchased-${Date.now()}`
+      };
+      
+      deckRef.current.push(newCard);
+      setMessage(`Purchased ${item.value}${item.suit} card! Added to deck.`);
+    } 
+    else if (item.type === 'tarot') {
+      // Add tarot card to consumable slots if there's space
+      const emptySlotIndex = consumableSlots.findIndex(slot => slot === null);
+      
+      if (emptySlotIndex !== -1) {
+        const newSlots = [...consumableSlots];
+        newSlots[emptySlotIndex] = item.tarotCard;
+        setConsumableSlots(newSlots);
+        setMessage(`Purchased ${item.tarotCard.name} tarot card!`);
+      } else {
+        setMessage("Consumable slots are full! Cannot purchase tarot card.");
+        return; // Don't deduct coins if purchase fails
+      }
+    } 
+    else if (item.type === 'token') {
+      // Add discard tokens
+      setDiscardTokens(prev => prev + item.amount);
+      setMessage(`Purchased ${item.amount} discard token!`);
+    }
+    
+    // Deduct coins and remove item from shop
+    setCoins(prev => prev - item.price);
+    setShopItems(prev => prev.filter(shopItem => shopItem.id !== item.id));
   };
   
   // Draw 10 random tarot cards for selection
@@ -200,6 +293,9 @@ const Blackjack = () => {
     setSelectedCards([]);
     setPlayerBlackjack(false);
     setDealerBlackjack(false);
+    
+    // Reset the discard usage tracker for the new round
+    setDiscardsUsed(false);
     
     // Create and shuffle a brand new deck
     const freshDeck = createFreshDeck();
@@ -528,6 +624,19 @@ const Blackjack = () => {
     setWins(newWins);
     setWinningStreak(newStreak);
     
+    // Award coins - 1 for winning, 2 bonus if no discards were used
+    let coinsEarned = 1;
+    if (!discardsUsed) {
+      coinsEarned += 2;
+      setMessage(prevMessage => `${prevMessage} +3 coins (no discards bonus)!`);
+    } else {
+      setMessage(prevMessage => `${prevMessage} +1 coin!`);
+    }
+    setCoins(prev => prev + coinsEarned);
+    
+    // Generate new shop items
+    setShopItems(generateShopItems());
+    
     // Check if player earned new discard tokens
     let newWinsUntilRefill = winsUntilRefill - 1;
     let newDiscardTokens = discardTokens;
@@ -634,6 +743,9 @@ const Blackjack = () => {
     setPlayerScore(newScore);
     
     setDiscardTokens(discardTokens - 1);
+    
+    // Track that discards were used in this round (for coin earning)
+    setDiscardsUsed(true);
     
     if (newScore > 21) {
       if (newScore >= 32) {
@@ -786,6 +898,10 @@ const Blackjack = () => {
   // Initialize the game
   useEffect(() => {
     console.log("Initializing new game");
+    
+    // Generate initial shop items
+    setShopItems(generateShopItems());
+    
     startNewRound();
     
     // Add error listener
@@ -916,6 +1032,91 @@ const Blackjack = () => {
     );
   };
   
+  // Render shop item
+  const renderShopItem = (item) => {
+    // For playing card
+    if (item.type === 'card') {
+      return (
+        <div 
+          key={item.id}
+          onClick={() => buyShopItem(item)}
+          className={`relative w-28 h-40 border-2 ${coins >= item.price ? 'border-green-400 hover:border-green-300' : 'border-gray-500 opacity-70'} rounded-lg shadow-md overflow-hidden transition-all duration-150 ${coins >= item.price ? 'cursor-pointer hover:shadow-lg transform hover:-translate-y-1' : 'cursor-not-allowed'}`}
+        >
+          <div className="absolute inset-0 flex items-center justify-center bg-white">
+            <div className={`flex flex-col items-center ${item.color}`}>
+              <div className="text-3xl font-bold">{item.value}</div>
+              <div className="text-4xl">{item.suit}</div>
+            </div>
+          </div>
+          
+          {/* Price tag */}
+          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-80 text-white text-center py-1 flex items-center justify-center">
+            <Coins size={16} className="mr-1 text-yellow-400" /> {item.price}
+          </div>
+        </div>
+      );
+    }
+    
+    // For tarot card
+    if (item.type === 'tarot') {
+      return (
+        <div 
+          key={item.id}
+          onClick={() => buyShopItem(item)}
+          className={`relative w-28 h-40 border-2 ${coins >= item.price ? 'border-purple-500 hover:border-purple-400' : 'border-gray-500 opacity-70'} rounded-lg overflow-hidden bg-purple-900 shadow-md transition-all duration-150 ${coins >= item.price ? 'cursor-pointer hover:shadow-lg transform hover:-translate-y-1' : 'cursor-not-allowed'}`}
+        >
+          <div className="absolute inset-0 p-2 flex flex-col items-center justify-between">
+            <div className="text-yellow-300 text-sm font-bold">{item.tarotCard.name}</div>
+            
+            {/* Custom tarot card art */}
+            <div className="flex-grow flex items-center justify-center">
+              {item.tarotCard.id === 'death' && (
+                <div className="text-purple-100 text-5xl transform">🪦</div>
+              )}
+              {item.tarotCard.id === 'hanged-man' && (
+                <div className="text-purple-100 text-5xl transform rotate-180">🧍</div>
+              )}
+            </div>
+            
+            <div className="text-yellow-300 text-xs text-center">
+              {item.tarotCard.effect}
+            </div>
+          </div>
+          
+          {/* Price tag */}
+          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-80 text-white text-center py-1 flex items-center justify-center">
+            <Coins size={16} className="mr-1 text-yellow-400" /> {item.price}
+          </div>
+        </div>
+      );
+    }
+    
+    // For token
+    if (item.type === 'token') {
+      return (
+        <div 
+          key={item.id}
+          onClick={() => buyShopItem(item)}
+          className={`relative w-28 h-40 border-2 ${coins >= item.price ? 'border-blue-500 hover:border-blue-400' : 'border-gray-500 opacity-70'} rounded-lg shadow-md overflow-hidden bg-blue-800 transition-all duration-150 ${coins >= item.price ? 'cursor-pointer hover:shadow-lg transform hover:-translate-y-1' : 'cursor-not-allowed'}`}
+        >
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <Shield size={48} className="text-blue-200 mb-2" />
+            <div className="text-white text-xl font-bold">Discard</div>
+            <div className="text-white text-xl font-bold">Token</div>
+            <div className="text-white text-sm mt-2">+{item.amount} token</div>
+          </div>
+          
+          {/* Price tag */}
+          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-80 text-white text-center py-1 flex items-center justify-center">
+            <Coins size={16} className="mr-1 text-yellow-400" /> {item.price}
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+  
   // Tarot Selection Modal Component
   const TarotSelectionModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
@@ -958,7 +1159,7 @@ const Blackjack = () => {
   // Info Panel Component
   const InfoPanel = () => (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-      <div className="bg-green-900 rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto p-8 shadow-2xl">
+      <div className="bg-green-900 rounded-lg max-w-4xl w-full h-[90vh] overflow-y-auto p-8 shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-bold text-white">Modified Blackjack Rules</h2>
           <button 
@@ -1001,6 +1202,24 @@ const Blackjack = () => {
               <li><span className="font-bold">Using Tarot Cards:</span> Click or drag the tarot card to use its effect.</li>
               <li><span className="font-bold">Card Slots:</span> You can hold a maximum of 2 tarot cards at a time.</li>
               <li><span className="font-bold">Reset on Loss:</span> All tarot cards are lost when you lose to the dealer.</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Shop System</h3>
+            <ul className="list-disc pl-6 space-y-2">
+              <li><span className="font-bold">Earning Coins:</span> Earn 1 coin for beating the dealer, plus 2 bonus coins if no discards were used.</li>
+              <li><span className="font-bold">Shop Refresh:</span> The shop refreshes after each win (not on pushes or when you bust).</li>
+              <li><span className="font-bold">Purchasing Cards:</span> You can buy cards to add to your deck for future rounds.</li>
+              <li><span className="font-bold">Shop Prices:</span>
+                <ul className="list-disc pl-6 mt-1">
+                  <li>Regular playing cards: 2 coins</li>
+                  <li>Ace cards: 4 coins</li>
+                  <li>Tarot cards: 5 coins</li>
+                  <li>Discard tokens: 3 coins</li>
+                </ul>
+              </li>
+              <li><span className="font-bold">Strategy:</span> Consider saving coins for powerful cards and tarot effects.</li>
             </ul>
           </div>
           
@@ -1080,15 +1299,47 @@ const Blackjack = () => {
         .card-lift:hover {
           transform: translateY(-8px);
         }
+        .shine-effect:hover {
+          position: relative;
+          overflow: hidden;
+        }
+        .shine-effect:hover::after {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -60%;
+          width: 200%;
+          height: 200%;
+          background: linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.3) 50%,
+            rgba(255, 255, 255, 0) 100%
+          );
+          transform: rotate(30deg);
+          animation: shine 1.5s infinite;
+        }
+        @keyframes shine {
+          from {
+            left: -60%;
+          }
+          to {
+            left: 100%;
+          }
+        }
       `}</style>
       
-      {/* Header with title and info button */}
+      {/* Header with title, coins, and info button */}
       <div className="flex justify-between items-center p-4 bg-green-900">
-        <h1 className="text-3xl font-bold">Blackjack</h1>
-        <div className="flex items-center">
+        <h1 className="text-3xl font-bold">Balatrojack</h1>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center bg-yellow-800 px-3 py-1 rounded-lg">
+            <Coins size={20} className="text-yellow-400 mr-2" />
+            <span className="text-xl font-bold text-yellow-400">{coins}</span>
+          </div>
           <button 
             onClick={toggleInfo}
-            className="ml-4 bg-yellow-600 hover:bg-yellow-700 text-white rounded-full p-2 transition-colors"
+            className="bg-yellow-600 hover:bg-yellow-700 text-white rounded-full p-2 transition-colors"
             title="Game Rules"
           >
             <Info size={24} />
@@ -1124,11 +1375,11 @@ const Blackjack = () => {
           </div>
           
           {/* Game history - compact version */}
-          {gameHistory.length > 0 && (
-            <div className="bg-gray-800 rounded-lg p-2 shadow-lg mb-4 overflow-hidden">
-              <h2 className="text-lg font-bold mb-2 border-b border-gray-700 pb-1">Game History</h2>
-              <div className="max-h-72 overflow-y-auto text-xs">
-                {gameHistory.map((game, index) => (
+          <div className="bg-gray-800 rounded-lg p-2 shadow-lg mb-4 overflow-hidden">
+            <h2 className="text-lg font-bold mb-2 border-b border-gray-700 pb-1">Game History</h2>
+            <div className="max-h-64 overflow-y-auto text-xs">
+              {gameHistory.length > 0 ? (
+                gameHistory.map((game, index) => (
                   <div key={index} className="border-b border-gray-700 py-1 flex flex-col">
                     <div className={game.winner === 'Player' ? 'text-green-400' : game.winner === 'Dealer' ? 'text-red-400' : 'text-yellow-400'}>
                       {game.winner} {game.winner !== 'Push' && 'wins'} ({game.reason})
@@ -1137,29 +1388,12 @@ const Blackjack = () => {
                       P: {game.playerScore} | D: {game.dealerScore}
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Deck visualization */}
-          <div 
-            className={`w-full flex justify-center mb-4 ${isShuffling ? 'animate-shuffle' : ''}`}
-          >
-            <div className="relative w-20 h-32 border-2 border-white rounded-lg shadow-md overflow-hidden">
-              {/* Card stack effect */}
-              <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(2deg)' }}>
-                <CardBackPattern />
-              </div>
-              <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(-2deg)' }}>
-                <CardBackPattern />
-              </div>
-              <div className="absolute inset-0 rounded-lg">
-                <CardBackPattern />
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 text-sm text-white p-1 z-10 text-center bg-black bg-opacity-50">
-                {deckRef.current.length - removedCardsRef.current.size} cards
-              </div>
+                ))
+              ) : (
+                <div className="text-gray-400 py-2 text-center">
+                  Play a round to see history
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1235,9 +1469,9 @@ const Blackjack = () => {
           </div>
         </div>
         
-        {/* Right side: Tarot cards (vertical layout) */}
+        {/* Right side: Tarot cards (vertical layout) and Deck */}
         <div className="col-span-2">
-          <div className="bg-purple-900 bg-opacity-50 rounded-lg p-4 shadow-lg">
+          <div className="bg-purple-900 bg-opacity-50 rounded-lg p-4 shadow-lg mb-4">
             <h2 className="text-xl font-bold mb-3">Tarot Cards</h2>
             <div className="text-sm text-yellow-300 mb-4">
               Drag to use or click to activate
@@ -1251,6 +1485,55 @@ const Blackjack = () => {
               {consumableSlots.map((card, index) => renderTarotCard(card, index))}
             </div>
           </div>
+          
+          {/* Deck visualization - now as big as playing cards */}
+          <div 
+            className={`flex justify-center mb-4 ${isShuffling ? 'animate-shuffle' : ''}`}
+          >
+            <div className="relative w-28 h-40 border-2 border-white rounded-lg shadow-md overflow-hidden">
+              {/* Card stack effect */}
+              <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(2deg)' }}>
+                <CardBackPattern />
+              </div>
+              <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(-2deg)' }}>
+                <CardBackPattern />
+              </div>
+              <div className="absolute inset-0 rounded-lg">
+                <CardBackPattern />
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 text-sm text-white p-1 z-10 text-center bg-black bg-opacity-70">
+                {deckRef.current.length - removedCardsRef.current.size} cards
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Shop area at the bottom */}
+      <div className="mt-4 p-4 bg-gray-900 rounded-t-lg shadow-lg">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold flex items-center">
+            <ShoppingCart className="mr-2" /> Card Shop
+          </h2>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center bg-yellow-800 px-3 py-1 rounded-lg">
+              <Coins size={20} className="text-yellow-400 mr-2" />
+              <span className="text-xl font-bold text-yellow-400">{coins}</span>
+            </div>
+            <div className="text-sm text-gray-400">
+              Win to refresh shop | +1 coin per win, +2 bonus for no discards
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-center gap-6">
+          {shopItems.length > 0 ? (
+            shopItems.map(item => renderShopItem(item))
+          ) : (
+            <div className="text-gray-400 py-8 text-center">
+              Win a round to stock the shop with new items!
+            </div>
+          )}
         </div>
       </div>
       
