@@ -218,21 +218,21 @@ const Blackjack = () => {
         
         {/* Center elements */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-blue-300 opacity-80 transform rotate-45"></div>
-          <div className="absolute w-4 h-4 bg-blue-300 opacity-50 rounded-full"></div>
+          <div className="w-8 h-8 border-2 border-blue-300 opacity-80 transform rotate-45"></div>
+          <div className="absolute w-6 h-6 bg-blue-300 opacity-50 rounded-full"></div>
         </div>
         
         {/* Corner patterns */}
-        <div className="absolute top-1 left-1 w-3 h-3 border-2 border-blue-300 opacity-70 transform rotate-45"></div>
-        <div className="absolute top-1 right-1 w-3 h-3 border-2 border-blue-300 opacity-70 transform rotate-45"></div>
-        <div className="absolute bottom-1 left-1 w-3 h-3 border-2 border-blue-300 opacity-70 transform rotate-45"></div>
-        <div className="absolute bottom-1 right-1 w-3 h-3 border-2 border-blue-300 opacity-70 transform rotate-45"></div>
+        <div className="absolute top-2 left-2 w-4 h-4 border-2 border-blue-300 opacity-70 transform rotate-45"></div>
+        <div className="absolute top-2 right-2 w-4 h-4 border-2 border-blue-300 opacity-70 transform rotate-45"></div>
+        <div className="absolute bottom-2 left-2 w-4 h-4 border-2 border-blue-300 opacity-70 transform rotate-45"></div>
+        <div className="absolute bottom-2 right-2 w-4 h-4 border-2 border-blue-300 opacity-70 transform rotate-45"></div>
         
         {/* Small dots */}
-        <div className="absolute top-8 left-2 w-1 h-1 bg-blue-300 rounded-full"></div>
-        <div className="absolute top-8 right-2 w-1 h-1 bg-blue-300 rounded-full"></div>
-        <div className="absolute bottom-8 left-2 w-1 h-1 bg-blue-300 rounded-full"></div>
-        <div className="absolute bottom-8 right-2 w-1 h-1 bg-blue-300 rounded-full"></div>
+        <div className="absolute top-12 left-3 w-2 h-2 bg-blue-300 rounded-full"></div>
+        <div className="absolute top-12 right-3 w-2 h-2 bg-blue-300 rounded-full"></div>
+        <div className="absolute bottom-12 left-3 w-2 h-2 bg-blue-300 rounded-full"></div>
+        <div className="absolute bottom-12 right-3 w-2 h-2 bg-blue-300 rounded-full"></div>
       </div>
     </div>
   );
@@ -668,9 +668,9 @@ const Blackjack = () => {
     // Add a custom drag image/ghost (optional)
     const dragEl = document.createElement('div');
     dragEl.textContent = type === 'player' ? '🃏' : '🔮';
-    dragEl.style.fontSize = '24px';
+    dragEl.style.fontSize = '36px';
     document.body.appendChild(dragEl);
-    e.dataTransfer.setDragImage(dragEl, 15, 15);
+    e.dataTransfer.setDragImage(dragEl, 20, 20);
     setTimeout(() => document.body.removeChild(dragEl), 0);
   };
   
@@ -843,7 +843,7 @@ const Blackjack = () => {
         onDragStart={(e) => isPlayerHand && handleDragStart(e, index, 'player')}
         onDragOver={handleDragOver}
         onDrop={(e) => isPlayerHand && handleDrop(e, index)}
-        className={`relative flex items-center justify-center w-16 h-24 border-2 border-gray-300 rounded-lg shadow-md overflow-hidden
+        className={`relative flex items-center justify-center w-28 h-40 border-2 border-gray-300 rounded-lg shadow-md overflow-hidden
           ${isPlayerHand && gameState === 'playing' ? 'cursor-pointer hover:border-blue-500' : ''} 
           ${isSelected ? 'border-yellow-400 border-4' : ''}
           ${getTilt()}
@@ -853,15 +853,15 @@ const Blackjack = () => {
         style={{ 
           margin: '-0.5rem',
           transformOrigin: 'center bottom',
-          transform: `${isSelected ? 'translateY(-10px)' : 'translateY(0)'} ${isPlayerHand ? `rotate(${index % 2 === 0 ? -1 : 1}deg)` : 'rotate(0)'}`,
+          transform: `${isSelected ? 'translateY(-16px)' : 'translateY(0)'} ${isPlayerHand ? `rotate(${index % 2 === 0 ? -1 : 1}deg)` : 'rotate(0)'}`,
           zIndex: isSelected ? 10 : index
         }}
       >
         {/* Card face */}
         <div className={`absolute inset-0 flex items-center justify-center bg-white ${isHidden ? 'hidden' : ''}`}>
           <div className={`flex flex-col items-center ${card.color}`}>
-            <div className="text-xl font-bold">{card.value}</div>
-            <div className="text-2xl">{card.suit}</div>
+            <div className="text-3xl font-bold">{card.value}</div>
+            <div className="text-4xl">{card.suit}</div>
           </div>
         </div>
         
@@ -878,9 +878,9 @@ const Blackjack = () => {
       return (
         <div 
           key={`tarot-empty-${index}`}
-          className="relative w-16 h-24 border-2 border-gray-300 border-dashed rounded-lg bg-gray-100 bg-opacity-20 flex items-center justify-center"
+          className="relative w-24 h-36 border-2 border-gray-300 border-dashed rounded-lg bg-gray-100 bg-opacity-20 flex items-center justify-center"
         >
-          <span className="text-white opacity-50">Empty</span>
+          <span className="text-white opacity-50 text-lg">Empty</span>
         </div>
       );
     }
@@ -888,25 +888,25 @@ const Blackjack = () => {
     return (
       <div 
         key={`tarot-${card.id}`}
-        className="relative w-16 h-24 border-2 border-yellow-600 rounded-lg overflow-hidden cursor-grab bg-purple-900 shadow-lg"
+        className="relative w-24 h-36 border-2 border-yellow-600 rounded-lg overflow-hidden cursor-grab bg-purple-900 shadow-lg"
         draggable={gameState === 'playing'}
         onDragStart={(e) => handleDragStart(e, index, 'consumable')}
         onClick={() => gameState === 'playing' && useTarotCard(index)}
       >
         <div className="absolute inset-0 p-2 flex flex-col items-center justify-between">
-          <div className="text-yellow-300 text-xs font-bold">{card.name}</div>
+          <div className="text-yellow-300 text-sm font-bold">{card.name}</div>
           
           {/* Custom tarot card art based on the card type */}
           <div className="flex-grow flex items-center justify-center">
             {card.id === 'death' && (
-              <div className="text-purple-100 text-3xl transform">🪦</div>
+              <div className="text-purple-100 text-5xl transform">🪦</div>
             )}
             {card.id === 'hanged-man' && (
-              <div className="text-purple-100 text-3xl transform rotate-180">🧍</div>
+              <div className="text-purple-100 text-5xl transform rotate-180">🧍</div>
             )}
           </div>
           
-          <div className="text-yellow-300 text-xs text-center">
+          <div className="text-yellow-300 text-sm text-center">
             {card.id === 'death' ? 'Transform' : 'Remove'}
           </div>
         </div>
@@ -917,32 +917,32 @@ const Blackjack = () => {
   // Tarot Selection Modal Component
   const TarotSelectionModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-      <div className="bg-purple-900 rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto p-6 shadow-2xl">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-yellow-300">Choose a Tarot Card</h2>
+      <div className="bg-purple-900 rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto p-8 shadow-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold text-yellow-300">Choose a Tarot Card</h2>
         </div>
         
-        <div className="flex flex-wrap justify-center gap-6 mb-6">
+        <div className="flex flex-wrap justify-center gap-8 mb-8">
           {availableTarotCards.map((card, index) => (
             <div 
               key={`selection-${card.id}`}
               onClick={() => selectTarotCard(card)}
-              className="relative w-32 h-48 border-2 border-yellow-600 rounded-lg overflow-hidden cursor-pointer bg-purple-800 shadow-lg hover:scale-105 transition-transform"
+              className="relative w-40 h-64 border-2 border-yellow-600 rounded-lg overflow-hidden cursor-pointer bg-purple-800 shadow-lg hover:scale-105 transition-transform"
             >
-              <div className="absolute inset-0 p-2 flex flex-col items-center justify-between">
-                <div className="text-yellow-300 text-lg font-bold">{card.name}</div>
+              <div className="absolute inset-0 p-4 flex flex-col items-center justify-between">
+                <div className="text-yellow-300 text-xl font-bold">{card.name}</div>
                 
                 {/* Custom tarot card art based on the card type */}
                 <div className="flex-grow flex items-center justify-center">
                   {card.id === 'death' && (
-                    <div className="text-purple-100 text-5xl">🪦</div>
+                    <div className="text-purple-100 text-6xl">🪦</div>
                   )}
                   {card.id === 'hanged-man' && (
-                    <div className="text-purple-100 text-5xl transform rotate-180">🧍</div>
+                    <div className="text-purple-100 text-6xl transform rotate-180">🧍</div>
                   )}
                 </div>
                 
-                <div className="text-white text-xs text-center">
+                <div className="text-white text-sm text-center">
                   {card.description}
                 </div>
               </div>
@@ -956,31 +956,31 @@ const Blackjack = () => {
   // Info Panel Component
   const InfoPanel = () => (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-      <div className="bg-green-900 rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto p-6 shadow-2xl">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-white">Modified Blackjack Rules</h2>
+      <div className="bg-green-900 rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto p-8 shadow-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold text-white">Modified Blackjack Rules</h2>
           <button 
             onClick={toggleInfo}
             className="text-white hover:text-yellow-300"
           >
-            <X size={24} />
+            <X size={32} />
           </button>
         </div>
         
-        <div className="text-white space-y-4">
+        <div className="text-white space-y-6 text-lg">
           <div>
-            <h3 className="text-xl font-semibold mb-2 text-yellow-300">Game Objective</h3>
+            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Game Objective</h3>
             <p>Get a hand value closer to 21 than the dealer without going over. Build a winning streak to earn points.</p>
           </div>
           
           <div>
-            <h3 className="text-xl font-semibold mb-2 text-yellow-300">Deck & Dealing</h3>
+            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Deck & Dealing</h3>
             <p>A standard 52-card deck is used and reshuffled after each round. Cards are dealt from the same deck to both player and dealer.</p>
           </div>
           
           <div>
-            <h3 className="text-xl font-semibold mb-2 text-yellow-300">Special Rules</h3>
-            <ul className="list-disc pl-5 space-y-2">
+            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Special Rules</h3>
+            <ul className="list-disc pl-6 space-y-2">
               <li><span className="font-bold">Discard System:</span> You have a limited number of discard tokens (starting with 5).</li>
               <li><span className="font-bold">Discard Refill:</span> Every 3 wins, you earn 5 more discard tokens.</li>
               <li><span className="font-bold">Winning Streak:</span> Game continues until you lose to the dealer, which resets your score to 0.</li>
@@ -991,8 +991,8 @@ const Blackjack = () => {
           </div>
           
           <div>
-            <h3 className="text-xl font-semibold mb-2 text-yellow-300">Tarot Card System</h3>
-            <ul className="list-disc pl-5 space-y-2">
+            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Tarot Card System</h3>
+            <ul className="list-disc pl-6 space-y-2">
               <li><span className="font-bold">Earning Tarot Cards:</span> Every 5 wins, you earn a tarot card (if you have space).</li>
               <li><span className="font-bold">Death Card:</span> Transforms the left selected card into the right selected card.</li>
               <li><span className="font-bold">Hanged Man Card:</span> Removes two selected cards completely from your hand.</li>
@@ -1003,8 +1003,8 @@ const Blackjack = () => {
           </div>
           
           <div>
-            <h3 className="text-xl font-semibold mb-2 text-yellow-300">Standard Blackjack Rules</h3>
-            <ul className="list-disc pl-5 space-y-2">
+            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Standard Blackjack Rules</h3>
+            <ul className="list-disc pl-6 space-y-2">
               <li>Cards 2-10 are worth their face value</li>
               <li>Face cards (J, Q, K) are worth 10</li>
               <li>Aces are worth 11, but convert to 1 if the hand would bust</li>
@@ -1018,7 +1018,7 @@ const Blackjack = () => {
   );
 
   return (
-    <div className="flex flex-col items-center p-4 bg-green-800 text-white min-h-screen w-full">
+    <div className="flex flex-col items-center py-6 px-4 bg-green-800 text-white min-h-screen w-full">
       <style jsx global>{`
         @keyframes dealCard {
           0% {
@@ -1058,51 +1058,51 @@ const Blackjack = () => {
         }
       `}</style>
       
-      <div className="flex items-center mb-2">
-        <h1 className="text-3xl font-bold">Blackjack</h1>
+      <div className="flex items-center mb-4">
+        <h1 className="text-4xl font-bold">Blackjack</h1>
         <button 
           onClick={toggleInfo}
-          className="ml-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-full p-1 transition-colors"
+          className="ml-4 bg-yellow-600 hover:bg-yellow-700 text-white rounded-full p-2 transition-colors"
           title="Game Rules"
         >
-          <Info size={20} />
+          <Info size={24} />
         </button>
       </div>
       
       {/* Scoreboard */}
-      <div className="flex justify-between w-full max-w-2xl mb-4">
-        <div className="bg-blue-900 p-2 rounded-lg">
-          <div className="font-bold">Current Score</div>
-          <div className="text-2xl">{wins}</div>
+      <div className="flex justify-between w-full max-w-6xl mb-6 gap-4">
+        <div className="bg-blue-900 p-4 rounded-lg flex flex-col items-center flex-1">
+          <div className="font-bold text-lg">Current Score</div>
+          <div className="text-3xl">{wins}</div>
         </div>
         
-        <div className="bg-blue-900 p-2 rounded-lg">
-          <div className="font-bold">Winning Streak</div>
-          <div className="text-2xl">{winningStreak}</div>
+        <div className="bg-blue-900 p-4 rounded-lg flex flex-col items-center flex-1">
+          <div className="font-bold text-lg">Winning Streak</div>
+          <div className="text-3xl">{winningStreak}</div>
         </div>
         
-        <div className="bg-blue-900 p-2 rounded-lg">
-          <div className="font-bold">Discard Tokens</div>
-          <div className="text-2xl">{discardTokens}</div>
+        <div className="bg-blue-900 p-4 rounded-lg flex flex-col items-center flex-1">
+          <div className="font-bold text-lg">Discard Tokens</div>
+          <div className="text-3xl">{discardTokens}</div>
         </div>
         
-        <div className="bg-blue-900 p-2 rounded-lg">
-          <div className="font-bold">Wins Until Tarot</div>
-          <div className="text-2xl">{tarotDrawCounter}</div>
+        <div className="bg-blue-900 p-4 rounded-lg flex flex-col items-center flex-1">
+          <div className="font-bold text-lg">Wins Until Tarot</div>
+          <div className="text-3xl">{tarotDrawCounter}</div>
         </div>
       </div>
       
       {/* Consumable slots */}
-      <div className="w-full max-w-2xl bg-purple-900 bg-opacity-50 rounded-lg p-4 shadow-lg mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-xl font-bold">Tarot Cards</h2>
-          <div className="text-xs text-yellow-300">
+      <div className="w-full max-w-6xl bg-purple-900 bg-opacity-50 rounded-lg p-6 shadow-lg mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">Tarot Cards</h2>
+          <div className="text-sm text-yellow-300">
             Drag to use or click to activate
           </div>
         </div>
         
         <div 
-          className="flex justify-center gap-4"
+          className="flex justify-center gap-6"
           onDragOver={handleDragOver}
           onDrop={(e) => handleTarotDrop(e, 'playArea')}
         >
@@ -1112,13 +1112,13 @@ const Blackjack = () => {
       
       {/* Game area */}
       <div 
-        className="w-full max-w-2xl bg-green-700 rounded-lg p-4 shadow-lg mb-4 relative"
+        className="w-full max-w-6xl bg-green-700 rounded-lg p-8 shadow-lg mb-6 relative min-h-[500px]"
         onDragOver={handleDragOver}
         onDrop={(e) => handleTarotDrop(e, 'playArea')}
       >
         {/* Deck visualization - moved to bottom left corner */}
         <div 
-          className={`absolute bottom-4 left-4 w-12 h-20 border-2 border-white rounded-lg shadow-md overflow-hidden ${isShuffling ? 'animate-shuffle' : ''}`}
+          className={`absolute bottom-6 left-6 w-20 h-32 border-2 border-white rounded-lg shadow-md overflow-hidden ${isShuffling ? 'animate-shuffle' : ''}`}
         >
           {/* Card stack effect */}
           <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(2deg)' }}>
@@ -1130,38 +1130,38 @@ const Blackjack = () => {
           <div className="absolute inset-0 rounded-lg">
             <CardBackPattern />
           </div>
-          <div className="absolute bottom-0 left-0 text-xs text-white p-1 z-10">
+          <div className="absolute bottom-0 left-0 text-sm text-white p-1 z-10">
             {deckRef.current.length}
           </div>
         </div>
         
         {/* Dealer area */}
-        <div className="mb-6">
-          <div className="flex justify-between mb-2">
-            <h2 className="text-xl font-bold">Dealer</h2>
-            <div className="bg-white text-black px-2 rounded">Score: {dealerScore}</div>
+        <div className="mb-8">
+          <div className="flex justify-between mb-4">
+            <h2 className="text-2xl font-bold">Dealer</h2>
+            <div className="bg-white text-black px-3 py-1 rounded text-lg">Score: {dealerScore}</div>
           </div>
           
-          <div className="flex justify-center">
+          <div className="flex justify-center min-h-[180px]">
             {dealerHand.filter(card => card).map((card, index) => renderCard(card, index, 'dealer'))}
           </div>
         </div>
         
         {/* Message area */}
-        <div className="text-center py-2 mb-4 bg-green-900 rounded-lg">
-          <p className="text-xl">{message}</p>
+        <div className="text-center py-4 mb-6 bg-green-900 rounded-lg">
+          <p className="text-2xl">{message}</p>
         </div>
         
         {/* Player area */}
         <div>
-          <div className="flex justify-between mb-2">
-            <h2 className="text-xl font-bold">Player</h2>
-            <div className={`px-2 rounded ${playerScore > 21 ? 'bg-red-500' : 'bg-white text-black'}`}>
+          <div className="flex justify-between mb-4">
+            <h2 className="text-2xl font-bold">Player</h2>
+            <div className={`px-3 py-1 rounded text-lg ${playerScore > 21 ? 'bg-red-500' : 'bg-white text-black'}`}>
               Score: {playerScore} {playerScore > 21 && '(Bust)'}
             </div>
           </div>
           
-          <div className="flex justify-center">
+          <div className="flex justify-center min-h-[180px]">
             {playerHand.filter(card => card).map((card, index) => renderCard(card, index, 'player'))}
           </div>
         </div>
@@ -1170,42 +1170,42 @@ const Blackjack = () => {
         {animatingCards.map(card => (
           <div 
             key={card.id}
-            className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-16 h-24 bg-white border-2 border-gray-300 rounded-lg shadow-md animate-discard`}
+            className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-28 h-40 bg-white border-2 border-gray-300 rounded-lg shadow-md animate-discard`}
           >
             <div className={`flex flex-col items-center ${card.color}`}>
-              <div className="text-xl font-bold">{card.value}</div>
-              <div className="text-2xl">{card.suit}</div>
+              <div className="text-3xl font-bold">{card.value}</div>
+              <div className="text-4xl">{card.suit}</div>
             </div>
           </div>
         ))}
       </div>
       
       {/* Controls */}
-      <div className="flex justify-center space-x-4 mb-6">
+      <div className="flex justify-center space-x-6 mb-8">
         {gameState === 'playing' && (
           <>
             <button
               onClick={hit}
               disabled={playerScore >= 32}
-              className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none transition-transform active:scale-95 ${playerScore >= 32 ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-xl focus:outline-none transition-transform active:scale-95 ${playerScore >= 32 ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               Hit
             </button>
             <button
               onClick={stand}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none transition-transform active:scale-95"
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-xl focus:outline-none transition-transform active:scale-95"
             >
               Stand
             </button>
             <button
               onClick={discardSelectedCard}
               disabled={discardTokens <= 0 || selectedCards.length !== 1}
-              className={`flex items-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none transition-transform active:scale-95 ${(discardTokens <= 0 || selectedCards.length !== 1) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`flex items-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg text-xl focus:outline-none transition-transform active:scale-95 ${(discardTokens <= 0 || selectedCards.length !== 1) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <Shield size={16} className="mr-1" /> Discard ({discardTokens})
+              <Shield size={20} className="mr-2" /> Discard ({discardTokens})
             </button>
             {selectedCards.length > 0 && (
-              <div className="text-white">
+              <div className="text-white text-xl flex items-center">
                 {selectedCards.length === 1 ? "1 card selected" : `${selectedCards.length} cards selected`}
               </div>
             )}
@@ -1215,7 +1215,7 @@ const Blackjack = () => {
       
       {/* Selected cards info */}
       {gameState === 'playing' && (
-        <div className="text-yellow-400 mb-4">
+        <div className="text-yellow-400 mb-6 text-lg">
           {selectedCards.length === 1 && "Selected 1 card for discard"}
           {selectedCards.length === 2 && "Selected 2 cards for tarot effects"}
           {selectedCards.length > 2 && `Selected ${selectedCards.length} cards (only 1 for discard or 2 for tarot effects)`}
@@ -1224,11 +1224,11 @@ const Blackjack = () => {
       
       {/* Game history */}
       {gameHistory.length > 0 && (
-        <div className="w-full max-w-2xl">
-          <h2 className="text-xl font-bold mb-2">Game History</h2>
-          <div className="bg-gray-800 rounded-lg p-2 max-h-40 overflow-y-auto">
+        <div className="w-full max-w-6xl">
+          <h2 className="text-2xl font-bold mb-3">Game History</h2>
+          <div className="bg-gray-800 rounded-lg p-4 max-h-60 overflow-y-auto">
             {gameHistory.map((game, index) => (
-              <div key={index} className="border-b border-gray-700 py-1 flex justify-between text-sm">
+              <div key={index} className="border-b border-gray-700 py-2 flex justify-between text-base">
                 <div className={game.winner === 'Player' ? 'text-green-400' : game.winner === 'Dealer' ? 'text-red-400' : 'text-yellow-400'}>
                   {game.winner} {game.winner !== 'Push' && 'wins'} ({game.reason})
                 </div>
