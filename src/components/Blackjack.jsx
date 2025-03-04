@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, RefreshCw, X, Info, Award, Trash2 } from 'lucide-react';
+import BlackjackDebug from './BlackjackDebug';
 
 const Blackjack = () => {
   // Game state
@@ -760,6 +761,26 @@ const Blackjack = () => {
     setShowInfo(!showInfo);
   };
   
+  // Debug functions
+  const addCardToPlayer = (card) => {
+    setPlayerHand(prev => [...prev, card]);
+    const newScore = calculateScore([...playerHand, card]);
+    setPlayerScore(newScore);
+  };
+  
+  const addTarotCard = (tarotCard) => {
+    // Find first empty slot
+    const emptySlotIndex = consumableSlots.findIndex(slot => slot === null);
+    if (emptySlotIndex !== -1) {
+      const newSlots = [...consumableSlots];
+      newSlots[emptySlotIndex] = tarotCard;
+      setConsumableSlots(newSlots);
+      setMessage("Debug: Added tarot card to slot");
+    } else {
+      setMessage("Debug: No empty slots for tarot card");
+    }
+  };
+  
   // Debug function to check current game state
   useEffect(() => {
     if (playerHand.length > 0 || dealerHand.length > 0) {
@@ -1083,6 +1104,19 @@ const Blackjack = () => {
         >
           <Info size={24} />
         </button>
+        
+        {/* Debug Component */}
+        <div className="ml-4">
+          <BlackjackDebug 
+            addCardToPlayer={addCardToPlayer}
+            addTarotCard={addTarotCard}
+            setDiscardTokens={setDiscardTokens}
+            discardTokens={discardTokens}
+            setWins={setWins}
+            wins={wins}
+            tarotCardDefinitions={tarotCardDefinitions}
+          />
+        </div>
       </div>
       
       {/* Scoreboard */}
