@@ -1,58 +1,39 @@
-import React, { useState, useEffect, useRef, DragEvent } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Shield, RefreshCw, X, Info, Award, Trash2 } from 'lucide-react';
-
-// Define types for Tarot cards
-type TarotCardType = {
-  id: string;
-  name: string;
-  effect: string;
-  description: string;
-  image: string;
-};
-
-// Define types for playing cards
-type PlayingCardType = {
-  suit: string;
-  value: string;
-  hidden: boolean;
-  color: string;
-  id: string;
-  isNew?: boolean;
-};
 
 const Blackjack = () => {
   // Game state
-  const [playerHand, setPlayerHand] = useState<PlayingCardType[]>([]);
-  const [dealerHand, setDealerHand] = useState<PlayingCardType[]>([]);
-  const [gameState, setGameState] = useState<'playing' | 'dealerTurn' | 'result' | 'tarotSelection'>('playing');
+  const [playerHand, setPlayerHand] = useState([]);
+  const [dealerHand, setDealerHand] = useState([]);
+  const [gameState, setGameState] = useState('playing'); // playing, dealerTurn, result, tarotSelection
   const [playerScore, setPlayerScore] = useState(0);
   const [dealerScore, setDealerScore] = useState(0);
   const [message, setMessage] = useState('Your move: Hit or Stand?');
   const [wins, setWins] = useState(0);
   const [discardTokens, setDiscardTokens] = useState(5);
   const [winsUntilRefill, setWinsUntilRefill] = useState(3);
-  const [gameHistory, setGameHistory] = useState<any[]>([]);
+  const [gameHistory, setGameHistory] = useState([]);
   const [playerBlackjack, setPlayerBlackjack] = useState(false);
   const [dealerBlackjack, setDealerBlackjack] = useState(false);
   const [winningStreak, setWinningStreak] = useState(0);
   const [isShuffling, setIsShuffling] = useState(false);
-  const [animatingCards, setAnimatingCards] = useState<any[]>([]);
+  const [animatingCards, setAnimatingCards] = useState([]);
   const [animationIndex, setAnimationIndex] = useState(0);
-  const [selectedCards, setSelectedCards] = useState<number[]>([]);
+  const [selectedCards, setSelectedCards] = useState([]);
   const [showInfo, setShowInfo] = useState(false);
   
   // Tarot-specific state
   const [tarotDrawCounter, setTarotDrawCounter] = useState(5);
-  const [availableTarotCards, setAvailableTarotCards] = useState<TarotCardType[]>([]);
-  const [consumableSlots, setConsumableSlots] = useState<(TarotCardType | null)[]>([null, null]);
+  const [availableTarotCards, setAvailableTarotCards] = useState([]);
+  const [consumableSlots, setConsumableSlots] = useState([null, null]);
   const [showTarotSelection, setShowTarotSelection] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [draggedCardIndex, setDraggedCardIndex] = useState<number | null>(null);
-  const [dragSourceType, setDragSourceType] = useState<'player' | 'consumable' | null>(null);
-  const [draggedTarotCardIndex, setDraggedTarotCardIndex] = useState<number | null>(null);
+  const [draggedCardIndex, setDraggedCardIndex] = useState(null);
+  const [dragSourceType, setDragSourceType] = useState(null); // 'player' or 'consumable'
+  const [draggedTarotCardIndex, setDraggedTarotCardIndex] = useState(null);
   
   // Define tarot cards
-  const tarotCardDefinitions: TarotCardType[] = [
+  const tarotCardDefinitions = [
     {
       id: 'death',
       name: 'Death',
@@ -70,14 +51,14 @@ const Blackjack = () => {
   ];
   
   // Direct deck reference to avoid state update issues
-  const deckRef = useRef<PlayingCardType[]>([]);
-  const dealtCardsRef = useRef<Set<string>>(new Set());
+  const deckRef = useRef([]);
+  const dealtCardsRef = useRef(new Set());
   
   // Create a standard deck of 52 cards
   const createFreshDeck = () => {
     const suits = ['♥', '♦', '♠', '♣'];
     const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-    const newDeck: PlayingCardType[] = [];
+    const newDeck = [];
     
     for (const suit of suits) {
       for (const value of values) {
@@ -95,7 +76,7 @@ const Blackjack = () => {
   };
   
   // Shuffle the deck using Fisher-Yates algorithm
-  const shuffleDeck = (deck: PlayingCardType[]) => {
+  const shuffleDeck = (deck) => {
     const shuffled = [...deck];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -114,7 +95,7 @@ const Blackjack = () => {
   };
   
   // Add tarot card to consumable slot
-  const selectTarotCard = (tarotCard: TarotCardType) => {
+  const selectTarotCard = (tarotCard) => {
     const emptySlotIndex = consumableSlots.findIndex(slot => slot === null);
     
     if (emptySlotIndex !== -1) {
@@ -132,7 +113,7 @@ const Blackjack = () => {
   };
   
   // Use tarot card from consumable slot
-  const useTarotCard = (slotIndex: number) => {
+  const useTarotCard = (slotIndex) => {
     const tarotCard = consumableSlots[slotIndex];
     
     if (!tarotCard) return;
@@ -373,7 +354,7 @@ const Blackjack = () => {
   };
   
   // Calculate score for a hand
-  const calculateScore = (hand: PlayingCardType[]) => {
+  const calculateScore = (hand) => {
     if (!hand || hand.length === 0) return 0;
     
     let score = 0;
@@ -402,7 +383,7 @@ const Blackjack = () => {
   };
   
   // Check for blackjack (21 with 2 cards)
-  const checkBlackjack = (hand: PlayingCardType[]) => {
+  const checkBlackjack = (hand) => {
     return hand.length === 2 && calculateScore(hand) === 21;
   };
   
@@ -486,7 +467,7 @@ const Blackjack = () => {
   };
   
   // Dealer plays their turn
-  const dealerPlay = (currentHand: PlayingCardType[], currentScore: number) => {
+  const dealerPlay = (currentHand, currentScore) => {
     let dealerCurrentHand = [...currentHand];
     let dealerCurrentScore = currentScore;
     
@@ -512,7 +493,7 @@ const Blackjack = () => {
   };
   
   // Determine who won the round
-  const determineWinner = (finalDealerScore: number) => {
+  const determineWinner = (finalDealerScore) => {
     setTimeout(() => {
       if (finalDealerScore > 21) {
         // Dealer busts, player wins
@@ -597,7 +578,7 @@ const Blackjack = () => {
   };
   
   // Add game to history
-  const addGameToHistory = (winner: string, reason: string) => {
+  const addGameToHistory = (winner, reason) => {
     const newHistory = [
       { 
         winner, 
@@ -614,7 +595,7 @@ const Blackjack = () => {
   };
   
   // Toggle card selection
-  const toggleCardSelection = (index: number) => {
+  const toggleCardSelection = (index) => {
     if (gameState !== 'playing') return;
     
     setSelectedCards(prev => {
@@ -668,7 +649,7 @@ const Blackjack = () => {
   };
   
   // Handle drag start for playing cards
-  const handleDragStart = (e: DragEvent<HTMLDivElement>, index: number, type: 'player' | 'consumable') => {
+  const handleDragStart = (e, index, type) => {
     if (gameState !== 'playing') return;
     
     // Set data for drag operation
@@ -694,13 +675,13 @@ const Blackjack = () => {
   };
   
   // Handle drag over
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   };
   
   // Handle drop for card reordering
-  const handleDrop = (e: DragEvent<HTMLDivElement>, targetIndex: number) => {
+  const handleDrop = (e, targetIndex) => {
     e.preventDefault();
     setIsDragging(false);
     
@@ -738,7 +719,7 @@ const Blackjack = () => {
   };
   
   // Handle drop for tarot card usage
-  const handleTarotDrop = (e: DragEvent<HTMLDivElement>, targetArea: 'playArea') => {
+  const handleTarotDrop = (e, targetArea) => {
     e.preventDefault();
     setIsDragging(false);
     
@@ -786,7 +767,7 @@ const Blackjack = () => {
         console.error("DUPLICATE CARDS DETECTED IN PLAY!");
         
         // Find which cards are duplicated
-        const cardCounts: {[key: string]: number} = {};
+        const cardCounts = {};
         allCardIds.forEach(id => {
           cardCounts[id] = (cardCounts[id] || 0) + 1;
         });
@@ -836,7 +817,7 @@ const Blackjack = () => {
   }, []);
   
   // Render a card
-  const renderCard = (card: PlayingCardType, index: number, hand: 'player' | 'dealer') => {
+  const renderCard = (card, index, hand) => {
     if (!card) return null;
     
     const isPlayerHand = hand === 'player';
@@ -891,7 +872,7 @@ const Blackjack = () => {
   };
   
   // Render a tarot card
-  const renderTarotCard = (card: TarotCardType | null, index: number) => {
+  const renderTarotCard = (card, index) => {
     if (!card) {
       // Empty slot
       return (
