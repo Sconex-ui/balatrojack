@@ -666,3 +666,228 @@ const Blackjack = () => {
               <li><span className="font-bold">Over-Bust Rule:</span> If your score is over 21 but under 32, you can still hit after discarding.</li>
               <li><span className="font-bold">Hard Bust:</span> If your score is 32 or higher, you cannot hit until discarding to get below 32.</li>
               <li><span className="font-bold">Card Selection:</span> Select a card by clicking on it, then use the discard button to remove it.</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h3 className="text-xl font-semibold mb-2 text-yellow-300">Standard Blackjack Rules</h3>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Cards 2-10 are worth their face value</li>
+              <li>Face cards (J, Q, K) are worth 10</li>
+              <li>Aces are worth 11, but convert to 1 if the hand would bust</li>
+              <li>Dealer must hit on 16 or less and stand on 17 or more</li>
+              <li>Blackjack (an Ace and a 10-value card) beats all other 21-point hands</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col items-center p-4 bg-green-800 text-white min-h-screen w-full">
+      <style jsx global>{`
+        @keyframes dealCard {
+          0% {
+            opacity: 0;
+            transform: translateY(-100px) scale(0.5);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        @keyframes discardCard {
+          0% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(100px) rotate(180deg) scale(0.5);
+          }
+        }
+        @keyframes shuffle {
+          0% { transform: rotate(0deg); }
+          25% { transform: rotate(-5deg) translateY(-5px); }
+          50% { transform: rotate(0deg); }
+          75% { transform: rotate(5deg) translateY(-5px); }
+          100% { transform: rotate(0deg); }
+        }
+        .animate-deal {
+          animation: dealCard 0.5s ease-out;
+        }
+        .animate-discard {
+          animation: discardCard 0.5s ease-in;
+        }
+        .animate-shuffle {
+          animation: shuffle 0.8s ease-in-out;
+        }
+      `}</style>
+      
+      <div className="flex items-center mb-2">
+        <h1 className="text-3xl font-bold">Blackjack</h1>
+        <button 
+          onClick={toggleInfo}
+          className="ml-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-full p-1 transition-colors"
+          title="Game Rules"
+        >
+          <Info size={20} />
+        </button>
+      </div>
+      
+      {/* Scoreboard */}
+      <div className="flex justify-between w-full max-w-2xl mb-4">
+        <div className="bg-blue-900 p-2 rounded-lg">
+          <div className="font-bold">Current Score</div>
+          <div className="text-2xl">{wins}</div>
+        </div>
+        
+        <div className="bg-blue-900 p-2 rounded-lg">
+          <div className="font-bold">Winning Streak</div>
+          <div className="text-2xl">{winningStreak}</div>
+        </div>
+        
+        <div className="bg-blue-900 p-2 rounded-lg">
+          <div className="font-bold">Discard Tokens</div>
+          <div className="text-2xl">{discardTokens}</div>
+        </div>
+        
+        <div className="bg-blue-900 p-2 rounded-lg">
+          <div className="font-bold">Wins Until Refill</div>
+          <div className="text-2xl">{winsUntilRefill}</div>
+        </div>
+      </div>
+      
+      {/* Game area */}
+      <div className="w-full max-w-2xl bg-green-700 rounded-lg p-4 shadow-lg mb-4 relative">
+        {/* Deck visualization - moved to bottom left corner */}
+        <div 
+          className={`absolute bottom-4 left-4 w-12 h-20 border-2 border-white rounded-lg shadow-md overflow-hidden ${isShuffling ? 'animate-shuffle' : ''}`}
+        >
+          {/* Card stack effect */}
+          <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(2deg)' }}>
+            <CardBackPattern />
+          </div>
+          <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(-2deg)' }}>
+            <CardBackPattern />
+          </div>
+          <div className="absolute inset-0 rounded-lg">
+            <CardBackPattern />
+          </div>
+          <div className="absolute bottom-0 left-0 text-xs text-white p-1 z-10">
+            {deckRef.current.length}
+          </div>
+        </div>
+        
+        {/* Dealer area */}
+        <div className="mb-6">
+          <div className="flex justify-between mb-2">
+            <h2 className="text-xl font-bold">Dealer</h2>
+            <div className="bg-white text-black px-2 rounded">Score: {dealerScore}</div>
+          </div>
+          
+          <div className="flex justify-center">
+            {dealerHand.filter(card => card).map((card, index) => renderCard(card, index, 'dealer'))}
+          </div>
+        </div>
+        
+        {/* Message area */}
+        <div className="text-center py-2 mb-4 bg-green-900 rounded-lg">
+          <p className="text-xl">{message}</p>
+        </div>
+        
+        {/* Player area */}
+        <div>
+          <div className="flex justify-between mb-2">
+            <h2 className="text-xl font-bold">Player</h2>
+            <div className={`px-2 rounded ${playerScore > 21 ? 'bg-red-500' : 'bg-white text-black'}`}>
+              Score: {playerScore} {playerScore > 21 && '(Bust)'}
+            </div>
+          </div>
+          
+          <div className="flex justify-center">
+            {playerHand.filter(card => card).map((card, index) => renderCard(card, index, 'player'))}
+          </div>
+        </div>
+        
+        {/* Animating cards overlay */}
+        {animatingCards.map(card => (
+          <div 
+            key={card.id}
+            className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-16 h-24 bg-white border-2 border-gray-300 rounded-lg shadow-md animate-discard`}
+          >
+            <div className={`flex flex-col items-center ${card.color}`}>
+              <div className="text-xl font-bold">{card.value}</div>
+              <div className="text-2xl">{card.suit}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Controls */}
+      <div className="flex justify-center space-x-4 mb-6">
+        {gameState === 'playing' && (
+          <>
+            <button
+              onClick={hit}
+              disabled={playerScore >= 32}
+              className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none transition-transform active:scale-95 ${playerScore >= 32 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              Hit
+            </button>
+            <button
+              onClick={stand}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none transition-transform active:scale-95"
+            >
+              Stand
+            </button>
+            <button
+              onClick={discardSelectedCard}
+              disabled={discardTokens <= 0 || selectedCards.length !== 1}
+              className={`flex items-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none transition-transform active:scale-95 ${(discardTokens <= 0 || selectedCards.length !== 1) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <Shield size={16} className="mr-1" /> Discard ({discardTokens})
+            </button>
+            {selectedCards.length > 0 && (
+              <div className="text-white">
+                {selectedCards.length === 1 ? "1 card selected" : `${selectedCards.length} cards selected`}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      
+      {/* Selected cards count */}
+      {gameState === 'playing' && selectedCards.length > 1 && (
+        <div className="text-yellow-400 mb-4">
+          Select only 1 card to discard
+        </div>
+      )}
+      
+      {/* Game history */}
+      {gameHistory.length > 0 && (
+        <div className="w-full max-w-2xl">
+          <h2 className="text-xl font-bold mb-2">Game History</h2>
+          <div className="bg-gray-800 rounded-lg p-2 max-h-40 overflow-y-auto">
+            {gameHistory.map((game, index) => (
+              <div key={index} className="border-b border-gray-700 py-1 flex justify-between text-sm">
+                <div className={game.winner === 'Player' ? 'text-green-400' : game.winner === 'Dealer' ? 'text-red-400' : 'text-yellow-400'}>
+                  {game.winner} {game.winner !== 'Push' && 'wins'} ({game.reason})
+                </div>
+                <div>
+                  Player: {game.playerScore} | Dealer: {game.dealerScore}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Info Panel */}
+      {showInfo && <InfoPanel />}
+    </div>
+  );
+};
+
+export default Blackjack;
