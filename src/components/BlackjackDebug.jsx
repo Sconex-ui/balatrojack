@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wrench, PlusCircle, Shield, Coins, Award, Cards, Dice } from 'lucide-react';
+import { Wrench, PlusCircle, Shield, Coins, Award, CreditCard, Dice } from 'lucide-react';
 
 const BlackjackDebug = ({ 
   addCardToPlayer, 
@@ -58,7 +58,7 @@ const BlackjackDebug = ({
   const sections = [
     { 
       title: "Cards", 
-      icon: <Cards size={16} />,
+      icon: <CreditCard size={16} />,
       content: (
         <div className="p-2 border-b border-gray-700">
           <h4 className="text-white font-medium mb-1">Add Card to Hand</h4>
