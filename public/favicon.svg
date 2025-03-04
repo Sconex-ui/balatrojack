@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="8" fill="#166534" />
+  <g transform="translate(8, 8)">
+    <!-- Spade -->
+    <path d="M24 4C24 4 16 14 8 14C0 14 0 24 8 28C4 28 4 34 8 34L8 36C8 36 16 36 16 28C16 36 24 36 24 36L24 34C28 34 28 28 24 28C32 24 32 14 24 14C16 14 8 4 8 4L24 4Z" fill="#f8fafc" />
+    <!-- Diamond -->
+    <path d="M32 4L40 16L48 4L40 28L48 40L40 48L32 40L24 48L16 40L24 28L16 16L24 4L32 4Z" fill="#ef4444" />
+  </g>
+</svg>
