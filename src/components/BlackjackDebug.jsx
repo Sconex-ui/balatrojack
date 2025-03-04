@@ -9,8 +9,8 @@ const BlackjackDebug = ({
   setWins,
   wins,
   tarotCardDefinitions,
-  setCoins,
-  coins
+  setCoins = () => {}, // Default value if not provided
+  coins = 0 // Default value if not provided
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
