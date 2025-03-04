@@ -1157,86 +1157,87 @@ const Blackjack = () => {
   );
   
   // Info Panel Component
-  const InfoPanel = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-      <div className="bg-green-900 rounded-lg max-w-4xl w-full h-[90vh] overflow-y-auto p-8 shadow-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-white">Modified Blackjack Rules</h2>
-          <button 
-            onClick={toggleInfo}
-            className="text-white hover:text-yellow-300 transition-colors"
-          >
-            <X size={32} />
-          </button>
+  // Info Panel Component - Reverted to scrollable version
+const InfoPanel = () => (
+  <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+    <div className="bg-green-900 rounded-lg max-w-4xl w-full h-96 overflow-y-auto p-8 shadow-2xl">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-white">Modified Blackjack Rules</h2>
+        <button 
+          onClick={toggleInfo}
+          className="text-white hover:text-yellow-300 transition-colors"
+        >
+          <X size={32} />
+        </button>
+      </div>
+      
+      <div className="text-white space-y-6 text-lg">
+        <div>
+          <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Game Objective</h3>
+          <p>Get a hand value closer to 21 than the dealer without going over. Build a winning streak to earn points.</p>
         </div>
         
-        <div className="text-white space-y-6 text-lg">
-          <div>
-            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Game Objective</h3>
-            <p>Get a hand value closer to 21 than the dealer without going over. Build a winning streak to earn points.</p>
-          </div>
-          
-          <div>
-            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Deck & Dealing</h3>
-            <p>A standard 52-card deck is used and reshuffled after each round. Cards are dealt from the same deck to both player and dealer.</p>
-          </div>
-          
-          <div>
-            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Special Rules</h3>
-            <ul className="list-disc pl-6 space-y-2">
-              <li><span className="font-bold">Discard System:</span> You have a limited number of discard tokens (starting with 5).</li>
-              <li><span className="font-bold">Discard Refill:</span> Every 3 wins, you earn 5 more discard tokens.</li>
-              <li><span className="font-bold">Winning Streak:</span> Game continues until you lose to the dealer, which resets your score to 0.</li>
-              <li><span className="font-bold">Over-Bust Rule:</span> If your score is over 21 but under 32, you can still hit after discarding.</li>
-              <li><span className="font-bold">Hard Bust:</span> If your score is 32 or higher, you cannot hit until discarding to get below 32.</li>
-              <li><span className="font-bold">Card Selection:</span> Select a card by clicking on it, then use the discard button to remove it.</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Tarot Card System</h3>
-            <ul className="list-disc pl-6 space-y-2">
-              <li><span className="font-bold">Earning Tarot Cards:</span> Every 5 wins, you earn a tarot card (if you have space).</li>
-              <li><span className="font-bold">Death Card:</span> Transforms the left selected card into the right selected card.</li>
-              <li><span className="font-bold">Hanged Man Card:</span> Removes two selected cards completely from your hand.</li>
-              <li><span className="font-bold">Using Tarot Cards:</span> Click or drag the tarot card to use its effect.</li>
-              <li><span className="font-bold">Card Slots:</span> You can hold a maximum of 2 tarot cards at a time.</li>
-              <li><span className="font-bold">Reset on Loss:</span> All tarot cards are lost when you lose to the dealer.</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Shop System</h3>
-            <ul className="list-disc pl-6 space-y-2">
-              <li><span className="font-bold">Earning Coins:</span> Earn 1 coin for beating the dealer, plus 2 bonus coins if no discards were used.</li>
-              <li><span className="font-bold">Shop Refresh:</span> The shop refreshes after each win (not on pushes or when you bust).</li>
-              <li><span className="font-bold">Purchasing Cards:</span> You can buy cards to add to your deck for future rounds.</li>
-              <li><span className="font-bold">Shop Prices:</span>
-                <ul className="list-disc pl-6 mt-1">
-                  <li>Regular playing cards: 2 coins</li>
-                  <li>Ace cards: 4 coins</li>
-                  <li>Tarot cards: 5 coins</li>
-                  <li>Discard tokens: 3 coins</li>
-                </ul>
-              </li>
-              <li><span className="font-bold">Strategy:</span> Consider saving coins for powerful cards and tarot effects.</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Standard Blackjack Rules</h3>
-            <ul className="list-disc pl-6 space-y-2">
-              <li>Cards 2-10 are worth their face value</li>
-              <li>Face cards (J, Q, K) are worth 10</li>
-              <li>Aces are worth 11, but convert to 1 if the hand would bust</li>
-              <li>Dealer must hit on 16 or less and stand on 17 or more</li>
-              <li>Blackjack (an Ace and a 10-value card) beats all other 21-point hands</li>
-            </ul>
-          </div>
+        <div>
+          <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Deck & Dealing</h3>
+          <p>A standard 52-card deck is used and reshuffled after each round. Cards are dealt from the same deck to both player and dealer.</p>
+        </div>
+        
+        <div>
+          <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Special Rules</h3>
+          <ul className="list-disc pl-6 space-y-2">
+            <li><span className="font-bold">Discard System:</span> You have a limited number of discard tokens (starting with 5).</li>
+            <li><span className="font-bold">Discard Refill:</span> Every 3 wins, you earn 5 more discard tokens.</li>
+            <li><span className="font-bold">Winning Streak:</span> Game continues until you lose to the dealer, which resets your score to 0.</li>
+            <li><span className="font-bold">Over-Bust Rule:</span> If your score is over 21 but under 32, you can still hit after discarding.</li>
+            <li><span className="font-bold">Hard Bust:</span> If your score is 32 or higher, you cannot hit until discarding to get below 32.</li>
+            <li><span className="font-bold">Card Selection:</span> Select a card by clicking on it, then use the discard button to remove it.</li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Tarot Card System</h3>
+          <ul className="list-disc pl-6 space-y-2">
+            <li><span className="font-bold">Earning Tarot Cards:</span> Every 5 wins, you earn a tarot card (if you have space).</li>
+            <li><span className="font-bold">Death Card:</span> Transforms the left selected card into the right selected card.</li>
+            <li><span className="font-bold">Hanged Man Card:</span> Removes two selected cards completely from your hand.</li>
+            <li><span className="font-bold">Using Tarot Cards:</span> Click or drag the tarot card to use its effect.</li>
+            <li><span className="font-bold">Card Slots:</span> You can hold a maximum of 2 tarot cards at a time.</li>
+            <li><span className="font-bold">Reset on Loss:</span> All tarot cards are lost when you lose to the dealer.</li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Shop System</h3>
+          <ul className="list-disc pl-6 space-y-2">
+            <li><span className="font-bold">Earning Coins:</span> Earn 1 coin for beating the dealer, plus 2 bonus coins if no discards were used.</li>
+            <li><span className="font-bold">Shop Refresh:</span> The shop refreshes after each win (not on pushes or when you bust).</li>
+            <li><span className="font-bold">Purchasing Cards:</span> You can buy cards to add to your deck for future rounds.</li>
+            <li><span className="font-bold">Shop Prices:</span>
+              <ul className="list-disc pl-6 mt-1">
+                <li>Regular playing cards: 2 coins</li>
+                <li>Ace cards: 4 coins</li>
+                <li>Tarot cards: 5 coins</li>
+                <li>Discard tokens: 3 coins</li>
+              </ul>
+            </li>
+            <li><span className="font-bold">Strategy:</span> Consider saving coins for powerful cards and tarot effects.</li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Standard Blackjack Rules</h3>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Cards 2-10 are worth their face value</li>
+            <li>Face cards (J, Q, K) are worth 10</li>
+            <li>Aces are worth 11, but convert to 1 if the hand would bust</li>
+            <li>Dealer must hit on 16 or less and stand on 17 or more</li>
+            <li>Blackjack (an Ace and a 10-value card) beats all other 21-point hands</li>
+          </ul>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 
   // Dragged card preview overlay for more responsive drag and drop
   const DraggedCardPreview = () => {
