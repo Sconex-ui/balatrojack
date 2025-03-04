@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, RefreshCw, X, Info, Award, Trash2, ShoppingCart, Coins, PlusCircle } from 'lucide-react';
+import BlackjackDebug from './BlackjackDebug';
 
 const Blackjack = () => {
   // Game state
