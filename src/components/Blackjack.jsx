@@ -53,6 +53,7 @@ const Blackjack = () => {
   // Direct deck reference to avoid state update issues
   const deckRef = useRef([]);
   const dealtCardsRef = useRef(new Set());
+  const removedCardsRef = useRef(new Set()); // Track permanently removed cards
   
   // Create a standard deck of 52 cards
   const createFreshDeck = () => {
@@ -153,6 +154,18 @@ const Blackjack = () => {
         // Sort indices in descending order to avoid shifting issues when removing
         const sortedSelection = [...selectedCards].sort((a, b) => b - a);
         
+        // Store the cards being removed to track them
+        const cardsToRemove = sortedSelection.map(index => playerHand[index]);
+        
+        // Add cards to the permanently removed set
+        cardsToRemove.forEach(card => {
+          removedCardsRef.current.add(card.id);
+        });
+        
+        // Log the removal for debugging
+        console.log(`Permanently removed cards: ${cardsToRemove.map(c => c.id).join(', ')}`);
+        console.log(`Total permanently removed cards: ${removedCardsRef.current.size}`);
+        
         // Create a new player hand without the selected cards
         const newHand = [...playerHand];
         sortedSelection.forEach(index => {
@@ -171,7 +184,7 @@ const Blackjack = () => {
         newSlots[slotIndex] = null;
         setConsumableSlots(newSlots);
         
-        setMessage('Hanged Man card used! Two cards removed from your hand.');
+        setMessage('Hanged Man card used! Two cards removed from your hand and the deck.');
       } else {
         setMessage('Hanged Man card requires exactly 2 selected cards.');
       }
@@ -195,11 +208,13 @@ const Blackjack = () => {
     const freshDeck = createFreshDeck();
     const shuffled = shuffleDeck(freshDeck);
     
-    // Reset the deck and dealt cards tracking
+    // Reset the deck and dealt cards tracking, but maintain removed cards
     deckRef.current = shuffled;
     dealtCardsRef.current = new Set();
     
-    console.log("Starting new round with fresh deck of 52 cards");
+    // Log deck status including removed cards
+    console.log(`Starting new round with fresh deck (${shuffled.length} cards)`);
+    console.log(`Permanently removed cards: ${removedCardsRef.current.size}`);
     
     // Delay to show shuffling animation
     setTimeout(() => {
@@ -319,10 +334,10 @@ const Blackjack = () => {
     let cardIndex = 0;
     let card;
     
-    // Find a card that hasn't been dealt yet
+    // Find a card that hasn't been dealt yet and hasn't been permanently removed
     while (cardIndex < deckRef.current.length) {
       const candidate = deckRef.current[cardIndex];
-      if (!dealtCardsRef.current.has(candidate.id)) {
+      if (!dealtCardsRef.current.has(candidate.id) && !removedCardsRef.current.has(candidate.id)) {
         card = {...candidate, hidden, isNew: true};
         dealtCardsRef.current.add(candidate.id);
         
@@ -574,6 +589,7 @@ const Blackjack = () => {
     setWins(0);
     setWinningStreak(0);
     setConsumableSlots([null, null]); // Clear tarot cards when losing
+    removedCardsRef.current.clear(); // Reset the permanently removed cards
     startNewRound();
   };
   
@@ -1131,7 +1147,7 @@ const Blackjack = () => {
             <CardBackPattern />
           </div>
           <div className="absolute bottom-0 left-0 text-sm text-white p-1 z-10">
-            {deckRef.current.length}
+            {deckRef.current.length - removedCardsRef.current.size}
           </div>
         </div>
         
