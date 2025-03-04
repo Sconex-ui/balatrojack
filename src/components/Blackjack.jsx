@@ -1,36 +1,83 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Shield, RefreshCw, X, Info } from 'lucide-react';
+import React, { useState, useEffect, useRef, DragEvent } from 'react';
+import { Shield, RefreshCw, X, Info, Award, Trash2 } from 'lucide-react';
+
+// Define types for Tarot cards
+type TarotCardType = {
+  id: string;
+  name: string;
+  effect: string;
+  description: string;
+  image: string;
+};
+
+// Define types for playing cards
+type PlayingCardType = {
+  suit: string;
+  value: string;
+  hidden: boolean;
+  color: string;
+  id: string;
+  isNew?: boolean;
+};
 
 const Blackjack = () => {
   // Game state
-  const [playerHand, setPlayerHand] = useState([]);
-  const [dealerHand, setDealerHand] = useState([]);
-  const [gameState, setGameState] = useState('playing'); // playing, dealerTurn, result
+  const [playerHand, setPlayerHand] = useState<PlayingCardType[]>([]);
+  const [dealerHand, setDealerHand] = useState<PlayingCardType[]>([]);
+  const [gameState, setGameState] = useState<'playing' | 'dealerTurn' | 'result' | 'tarotSelection'>('playing');
   const [playerScore, setPlayerScore] = useState(0);
   const [dealerScore, setDealerScore] = useState(0);
   const [message, setMessage] = useState('Your move: Hit or Stand?');
   const [wins, setWins] = useState(0);
   const [discardTokens, setDiscardTokens] = useState(5);
   const [winsUntilRefill, setWinsUntilRefill] = useState(3);
-  const [gameHistory, setGameHistory] = useState([]);
+  const [gameHistory, setGameHistory] = useState<any[]>([]);
   const [playerBlackjack, setPlayerBlackjack] = useState(false);
   const [dealerBlackjack, setDealerBlackjack] = useState(false);
   const [winningStreak, setWinningStreak] = useState(0);
   const [isShuffling, setIsShuffling] = useState(false);
-  const [animatingCards, setAnimatingCards] = useState([]);
+  const [animatingCards, setAnimatingCards] = useState<any[]>([]);
   const [animationIndex, setAnimationIndex] = useState(0);
-  const [selectedCards, setSelectedCards] = useState([]);
+  const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [showInfo, setShowInfo] = useState(false);
   
+  // Tarot-specific state
+  const [tarotDrawCounter, setTarotDrawCounter] = useState(5);
+  const [availableTarotCards, setAvailableTarotCards] = useState<TarotCardType[]>([]);
+  const [consumableSlots, setConsumableSlots] = useState<(TarotCardType | null)[]>([null, null]);
+  const [showTarotSelection, setShowTarotSelection] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedCardIndex, setDraggedCardIndex] = useState<number | null>(null);
+  const [dragSourceType, setDragSourceType] = useState<'player' | 'consumable' | null>(null);
+  const [draggedTarotCardIndex, setDraggedTarotCardIndex] = useState<number | null>(null);
+  
+  // Define tarot cards
+  const tarotCardDefinitions: TarotCardType[] = [
+    {
+      id: 'death',
+      name: 'Death',
+      effect: 'transform',
+      description: 'Transform the left selected card into the right selected card.',
+      image: 'death'
+    },
+    {
+      id: 'hanged-man',
+      name: 'The Hanged Man',
+      effect: 'remove',
+      description: 'Remove two selected cards completely from your hand.',
+      image: 'hanged-man'
+    }
+  ];
+  
   // Direct deck reference to avoid state update issues
-  const deckRef = useRef([]);
-  const dealtCardsRef = useRef(new Set());
+  const deckRef = useRef<PlayingCardType[]>([]);
+  const dealtCardsRef = useRef<Set<string>>(new Set());
   
   // Create a standard deck of 52 cards
   const createFreshDeck = () => {
     const suits = ['♥', '♦', '♠', '♣'];
     const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-    const newDeck = [];
+    const newDeck: PlayingCardType[] = [];
     
     for (const suit of suits) {
       for (const value of values) {
@@ -48,13 +95,106 @@ const Blackjack = () => {
   };
   
   // Shuffle the deck using Fisher-Yates algorithm
-  const shuffleDeck = (deck) => {
+  const shuffleDeck = (deck: PlayingCardType[]) => {
     const shuffled = [...deck];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
+  };
+  
+  // Draw 10 random tarot cards for selection
+  const drawTarotSelection = () => {
+    // For now, just shuffle and present the tarot definitions we have (limited to 2 for this implementation)
+    // This would be enhanced in a full version with more tarot cards
+    setAvailableTarotCards(shuffleDeck([...tarotCardDefinitions]));
+    setGameState('tarotSelection');
+    setShowTarotSelection(true);
+  };
+  
+  // Add tarot card to consumable slot
+  const selectTarotCard = (tarotCard: TarotCardType) => {
+    const emptySlotIndex = consumableSlots.findIndex(slot => slot === null);
+    
+    if (emptySlotIndex !== -1) {
+      const newSlots = [...consumableSlots];
+      newSlots[emptySlotIndex] = tarotCard;
+      setConsumableSlots(newSlots);
+      
+      // Close tarot selection and continue game
+      setShowTarotSelection(false);
+      setGameState('playing');
+      startNewRound();
+    } else {
+      setMessage("Consumable slots are full! You must use a tarot card before getting another.");
+    }
+  };
+  
+  // Use tarot card from consumable slot
+  const useTarotCard = (slotIndex: number) => {
+    const tarotCard = consumableSlots[slotIndex];
+    
+    if (!tarotCard) return;
+    
+    if (tarotCard.id === 'death') {
+      // Death card - transform left selected card into right selected card
+      if (selectedCards.length === 2) {
+        const sortedSelection = [...selectedCards].sort((a, b) => a - b);
+        const [leftCardIndex, rightCardIndex] = sortedSelection;
+        
+        // Get the card to duplicate (right card)
+        const rightCard = playerHand[rightCardIndex];
+        
+        // Create a new player hand with the transformation
+        const newHand = [...playerHand];
+        newHand[leftCardIndex] = {...rightCard, id: `${rightCard.id}-${Date.now()}`}; // ensure unique ID
+        
+        setPlayerHand(newHand);
+        setSelectedCards([]);
+        
+        // Calculate new score
+        const newScore = calculateScore(newHand);
+        setPlayerScore(newScore);
+        
+        // Remove the used tarot card
+        const newSlots = [...consumableSlots];
+        newSlots[slotIndex] = null;
+        setConsumableSlots(newSlots);
+        
+        setMessage('Death card used! Left card transformed into right card.');
+      } else {
+        setMessage('Death card requires exactly 2 selected cards. Select left and right cards.');
+      }
+    } else if (tarotCard.id === 'hanged-man') {
+      // Hanged Man card - remove 2 selected cards completely
+      if (selectedCards.length === 2) {
+        // Sort indices in descending order to avoid shifting issues when removing
+        const sortedSelection = [...selectedCards].sort((a, b) => b - a);
+        
+        // Create a new player hand without the selected cards
+        const newHand = [...playerHand];
+        sortedSelection.forEach(index => {
+          newHand.splice(index, 1);
+        });
+        
+        setPlayerHand(newHand);
+        setSelectedCards([]);
+        
+        // Calculate new score
+        const newScore = calculateScore(newHand);
+        setPlayerScore(newScore);
+        
+        // Remove the used tarot card
+        const newSlots = [...consumableSlots];
+        newSlots[slotIndex] = null;
+        setConsumableSlots(newSlots);
+        
+        setMessage('Hanged Man card used! Two cards removed from your hand.');
+      } else {
+        setMessage('Hanged Man card requires exactly 2 selected cards.');
+      }
+    }
   };
   
   // Start a new round with a fresh deck
@@ -233,7 +373,7 @@ const Blackjack = () => {
   };
   
   // Calculate score for a hand
-  const calculateScore = (hand) => {
+  const calculateScore = (hand: PlayingCardType[]) => {
     if (!hand || hand.length === 0) return 0;
     
     let score = 0;
@@ -262,7 +402,7 @@ const Blackjack = () => {
   };
   
   // Check for blackjack (21 with 2 cards)
-  const checkBlackjack = (hand) => {
+  const checkBlackjack = (hand: PlayingCardType[]) => {
     return hand.length === 2 && calculateScore(hand) === 21;
   };
   
@@ -346,7 +486,7 @@ const Blackjack = () => {
   };
   
   // Dealer plays their turn
-  const dealerPlay = (currentHand, currentScore) => {
+  const dealerPlay = (currentHand: PlayingCardType[], currentScore: number) => {
     let dealerCurrentHand = [...currentHand];
     let dealerCurrentScore = currentScore;
     
@@ -372,7 +512,7 @@ const Blackjack = () => {
   };
   
   // Determine who won the round
-  const determineWinner = (finalDealerScore) => {
+  const determineWinner = (finalDealerScore: number) => {
     setTimeout(() => {
       if (finalDealerScore > 21) {
         // Dealer busts, player wins
@@ -423,7 +563,28 @@ const Blackjack = () => {
     setWinsUntilRefill(newWinsUntilRefill);
     setDiscardTokens(newDiscardTokens);
     
-    // Start new round after delay
+    // Check if player should draw a Tarot card
+    let newTarotDrawCounter = tarotDrawCounter - 1;
+    if (newTarotDrawCounter <= 0) {
+      // Reset counter
+      newTarotDrawCounter = 5; 
+      
+      // Check if player has space for a tarot card
+      if (consumableSlots.some(slot => slot === null)) {
+        setTimeout(() => {
+          setMessage("You've earned a Tarot card! Choose one to add to your consumables.");
+          drawTarotSelection();
+        }, 1000);
+        setTarotDrawCounter(newTarotDrawCounter);
+        return; // Don't start a new round yet
+      } else {
+        setMessage(prevMessage => `${prevMessage} You would earn a Tarot card, but your slots are full!`);
+      }
+    }
+    
+    setTarotDrawCounter(newTarotDrawCounter);
+    
+    // Start new round after delay if we're not drawing tarot cards
     setTimeout(startNewRound, 2000);
   };
   
@@ -431,11 +592,12 @@ const Blackjack = () => {
   const resetAfterLoss = () => {
     setWins(0);
     setWinningStreak(0);
+    setConsumableSlots([null, null]); // Clear tarot cards when losing
     startNewRound();
   };
   
   // Add game to history
-  const addGameToHistory = (winner, reason) => {
+  const addGameToHistory = (winner: string, reason: string) => {
     const newHistory = [
       { 
         winner, 
@@ -452,7 +614,7 @@ const Blackjack = () => {
   };
   
   // Toggle card selection
-  const toggleCardSelection = (index) => {
+  const toggleCardSelection = (index: number) => {
     if (gameState !== 'playing') return;
     
     setSelectedCards(prev => {
@@ -505,6 +667,97 @@ const Blackjack = () => {
     }
   };
   
+  // Handle drag start for playing cards
+  const handleDragStart = (e: DragEvent<HTMLDivElement>, index: number, type: 'player' | 'consumable') => {
+    if (gameState !== 'playing') return;
+    
+    // Set data for drag operation
+    if (type === 'player') {
+      setDraggedCardIndex(index);
+      setDragSourceType('player');
+      e.dataTransfer.setData('text/plain', `player-${index}`);
+    } else if (type === 'consumable') {
+      setDraggedTarotCardIndex(index);
+      setDragSourceType('consumable');
+      e.dataTransfer.setData('text/plain', `consumable-${index}`);
+    }
+    
+    setIsDragging(true);
+    
+    // Add a custom drag image/ghost (optional)
+    const dragEl = document.createElement('div');
+    dragEl.textContent = type === 'player' ? '🃏' : '🔮';
+    dragEl.style.fontSize = '24px';
+    document.body.appendChild(dragEl);
+    e.dataTransfer.setDragImage(dragEl, 15, 15);
+    setTimeout(() => document.body.removeChild(dragEl), 0);
+  };
+  
+  // Handle drag over
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+  
+  // Handle drop for card reordering
+  const handleDrop = (e: DragEvent<HTMLDivElement>, targetIndex: number) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const data = e.dataTransfer.getData('text/plain');
+    
+    // Handle player card rearrangement
+    if (data.startsWith('player-') && dragSourceType === 'player' && draggedCardIndex !== null) {
+      const sourceIndex = draggedCardIndex;
+      
+      // Don't do anything if dropping on the same card
+      if (sourceIndex === targetIndex) return;
+      
+      // Create a new hand with reordered cards
+      const newHand = [...playerHand];
+      const [movedCard] = newHand.splice(sourceIndex, 1);
+      newHand.splice(targetIndex, 0, movedCard);
+      
+      setPlayerHand(newHand);
+      
+      // Adjust selected cards if needed
+      setSelectedCards(prevSelected => {
+        return prevSelected.map(index => {
+          if (index === sourceIndex) return targetIndex;
+          if (sourceIndex < index && index <= targetIndex) return index - 1;
+          if (sourceIndex > index && index >= targetIndex) return index + 1;
+          return index;
+        });
+      });
+    }
+    
+    // Reset drag state
+    setDraggedCardIndex(null);
+    setDraggedTarotCardIndex(null);
+    setDragSourceType(null);
+  };
+  
+  // Handle drop for tarot card usage
+  const handleTarotDrop = (e: DragEvent<HTMLDivElement>, targetArea: 'playArea') => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const data = e.dataTransfer.getData('text/plain');
+    
+    // Handle tarot card usage
+    if (data.startsWith('consumable-') && dragSourceType === 'consumable' && draggedTarotCardIndex !== null) {
+      const slotIndex = draggedTarotCardIndex;
+      
+      // Use the tarot card
+      useTarotCard(slotIndex);
+    }
+    
+    // Reset drag state
+    setDraggedCardIndex(null);
+    setDraggedTarotCardIndex(null);
+    setDragSourceType(null);
+  };
+  
   // Toggle info panel
   const toggleInfo = () => {
     setShowInfo(!showInfo);
@@ -533,7 +786,7 @@ const Blackjack = () => {
         console.error("DUPLICATE CARDS DETECTED IN PLAY!");
         
         // Find which cards are duplicated
-        const cardCounts = {};
+        const cardCounts: {[key: string]: number} = {};
         allCardIds.forEach(id => {
           cardCounts[id] = (cardCounts[id] || 0) + 1;
         });
@@ -583,7 +836,7 @@ const Blackjack = () => {
   }, []);
   
   // Render a card
-  const renderCard = (card, index, hand) => {
+  const renderCard = (card: PlayingCardType, index: number, hand: 'player' | 'dealer') => {
     if (!card) return null;
     
     const isPlayerHand = hand === 'player';
@@ -605,11 +858,16 @@ const Blackjack = () => {
       <div 
         key={`${hand}-${card.id || index}`}
         onClick={() => isPlayerHand && gameState === 'playing' && toggleCardSelection(index)}
+        draggable={isPlayerHand && gameState === 'playing'}
+        onDragStart={(e) => isPlayerHand && handleDragStart(e, index, 'player')}
+        onDragOver={handleDragOver}
+        onDrop={(e) => isPlayerHand && handleDrop(e, index)}
         className={`relative flex items-center justify-center w-16 h-24 border-2 border-gray-300 rounded-lg shadow-md overflow-hidden
           ${isPlayerHand && gameState === 'playing' ? 'cursor-pointer hover:border-blue-500' : ''} 
           ${isSelected ? 'border-yellow-400 border-4' : ''}
           ${getTilt()}
           ${isNewCard ? 'animate-deal' : ''}
+          ${isDragging && draggedCardIndex === index ? 'opacity-50' : ''}
           transition-all duration-150`}
         style={{ 
           margin: '-0.5rem',
@@ -631,6 +889,88 @@ const Blackjack = () => {
       </div>
     );
   };
+  
+  // Render a tarot card
+  const renderTarotCard = (card: TarotCardType | null, index: number) => {
+    if (!card) {
+      // Empty slot
+      return (
+        <div 
+          key={`tarot-empty-${index}`}
+          className="relative w-16 h-24 border-2 border-gray-300 border-dashed rounded-lg bg-gray-100 bg-opacity-20 flex items-center justify-center"
+        >
+          <span className="text-white opacity-50">Empty</span>
+        </div>
+      );
+    }
+    
+    return (
+      <div 
+        key={`tarot-${card.id}`}
+        className="relative w-16 h-24 border-2 border-yellow-600 rounded-lg overflow-hidden cursor-grab bg-purple-900 shadow-lg"
+        draggable={gameState === 'playing'}
+        onDragStart={(e) => handleDragStart(e, index, 'consumable')}
+        onClick={() => gameState === 'playing' && useTarotCard(index)}
+      >
+        <div className="absolute inset-0 p-2 flex flex-col items-center justify-between">
+          <div className="text-yellow-300 text-xs font-bold">{card.name}</div>
+          
+          {/* Custom tarot card art based on the card type */}
+          <div className="flex-grow flex items-center justify-center">
+            {card.id === 'death' && (
+              <div className="text-purple-100 text-3xl transform">🪦</div>
+            )}
+            {card.id === 'hanged-man' && (
+              <div className="text-purple-100 text-3xl transform rotate-180">🧍</div>
+            )}
+          </div>
+          
+          <div className="text-yellow-300 text-xs text-center">
+            {card.id === 'death' ? 'Transform' : 'Remove'}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  // Tarot Selection Modal Component
+  const TarotSelectionModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+      <div className="bg-purple-900 rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto p-6 shadow-2xl">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-yellow-300">Choose a Tarot Card</h2>
+        </div>
+        
+        <div className="flex flex-wrap justify-center gap-6 mb-6">
+          {availableTarotCards.map((card, index) => (
+            <div 
+              key={`selection-${card.id}`}
+              onClick={() => selectTarotCard(card)}
+              className="relative w-32 h-48 border-2 border-yellow-600 rounded-lg overflow-hidden cursor-pointer bg-purple-800 shadow-lg hover:scale-105 transition-transform"
+            >
+              <div className="absolute inset-0 p-2 flex flex-col items-center justify-between">
+                <div className="text-yellow-300 text-lg font-bold">{card.name}</div>
+                
+                {/* Custom tarot card art based on the card type */}
+                <div className="flex-grow flex items-center justify-center">
+                  {card.id === 'death' && (
+                    <div className="text-purple-100 text-5xl">🪦</div>
+                  )}
+                  {card.id === 'hanged-man' && (
+                    <div className="text-purple-100 text-5xl transform rotate-180">🧍</div>
+                  )}
+                </div>
+                
+                <div className="text-white text-xs text-center">
+                  {card.description}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
   
   // Info Panel Component
   const InfoPanel = () => (
@@ -666,6 +1006,18 @@ const Blackjack = () => {
               <li><span className="font-bold">Over-Bust Rule:</span> If your score is over 21 but under 32, you can still hit after discarding.</li>
               <li><span className="font-bold">Hard Bust:</span> If your score is 32 or higher, you cannot hit until discarding to get below 32.</li>
               <li><span className="font-bold">Card Selection:</span> Select a card by clicking on it, then use the discard button to remove it.</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h3 className="text-xl font-semibold mb-2 text-yellow-300">Tarot Card System</h3>
+            <ul className="list-disc pl-5 space-y-2">
+              <li><span className="font-bold">Earning Tarot Cards:</span> Every 5 wins, you earn a tarot card (if you have space).</li>
+              <li><span className="font-bold">Death Card:</span> Transforms the left selected card into the right selected card.</li>
+              <li><span className="font-bold">Hanged Man Card:</span> Removes two selected cards completely from your hand.</li>
+              <li><span className="font-bold">Using Tarot Cards:</span> Click or drag the tarot card to use its effect.</li>
+              <li><span className="font-bold">Card Slots:</span> You can hold a maximum of 2 tarot cards at a time.</li>
+              <li><span className="font-bold">Reset on Loss:</span> All tarot cards are lost when you lose to the dealer.</li>
             </ul>
           </div>
           
@@ -754,13 +1106,35 @@ const Blackjack = () => {
         </div>
         
         <div className="bg-blue-900 p-2 rounded-lg">
-          <div className="font-bold">Wins Until Refill</div>
-          <div className="text-2xl">{winsUntilRefill}</div>
+          <div className="font-bold">Wins Until Tarot</div>
+          <div className="text-2xl">{tarotDrawCounter}</div>
+        </div>
+      </div>
+      
+      {/* Consumable slots */}
+      <div className="w-full max-w-2xl bg-purple-900 bg-opacity-50 rounded-lg p-4 shadow-lg mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-xl font-bold">Tarot Cards</h2>
+          <div className="text-xs text-yellow-300">
+            Drag to use or click to activate
+          </div>
+        </div>
+        
+        <div 
+          className="flex justify-center gap-4"
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleTarotDrop(e, 'playArea')}
+        >
+          {consumableSlots.map((card, index) => renderTarotCard(card, index))}
         </div>
       </div>
       
       {/* Game area */}
-      <div className="w-full max-w-2xl bg-green-700 rounded-lg p-4 shadow-lg mb-4 relative">
+      <div 
+        className="w-full max-w-2xl bg-green-700 rounded-lg p-4 shadow-lg mb-4 relative"
+        onDragOver={handleDragOver}
+        onDrop={(e) => handleTarotDrop(e, 'playArea')}
+      >
         {/* Deck visualization - moved to bottom left corner */}
         <div 
           className={`absolute bottom-4 left-4 w-12 h-20 border-2 border-white rounded-lg shadow-md overflow-hidden ${isShuffling ? 'animate-shuffle' : ''}`}
@@ -858,10 +1232,12 @@ const Blackjack = () => {
         )}
       </div>
       
-      {/* Selected cards count */}
-      {gameState === 'playing' && selectedCards.length > 1 && (
+      {/* Selected cards info */}
+      {gameState === 'playing' && (
         <div className="text-yellow-400 mb-4">
-          Select only 1 card to discard
+          {selectedCards.length === 1 && "Selected 1 card for discard"}
+          {selectedCards.length === 2 && "Selected 2 cards for tarot effects"}
+          {selectedCards.length > 2 && `Selected ${selectedCards.length} cards (only 1 for discard or 2 for tarot effects)`}
         </div>
       )}
       
@@ -886,6 +1262,9 @@ const Blackjack = () => {
       
       {/* Info Panel */}
       {showInfo && <InfoPanel />}
+      
+      {/* Tarot Selection Modal */}
+      {showTarotSelection && <TarotSelectionModal />}
     </div>
   );
 };
