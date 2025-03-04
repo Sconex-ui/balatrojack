@@ -1,816 +1,5 @@
-{/* Center: Main game area */}
-        <div className="col-span-8 bg-green-700 rounded-lg p-4 shadow-lg flex flex-col">
-          {/* Dealer area */}
-          <div className="mb-4">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-xl font-bold">Dealer</h2>
-              <div className="bg-white text-black px-3 py-1 rounded text-lg">Score: {dealerScore}</div>
-            </div>
-            
-            <div className="flex justify-center min-h-[160px] items-center">
-              {dealerHand.filter(card => card).map((card, index) => renderCard(card, index, 'dealer'))}
-            </div>
-          </div>
-          
-          {/* Message area */}
-          <div className="text-center py-2 mb-4 bg-green-900 rounded-lg">
-            <p className="text-xl">{message}</p>
-          </div>
-          
-          {/* Player area */}
-          <div className="flex-grow">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-xl font-bold">Player</h2>
-              <div className={`px-3 py-1 rounded text-lg ${playerScore > 21 ? 'bg-red-500' : 'bg-white text-black'}`}>
-                Score: {playerScore} {playerScore > 21 && '(Bust)'}
-              </div>
-            </div>
-            
-            <div 
-              className="flex justify-center min-h-[160px] items-center mb-4"
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleTarotDrop(e, 'playArea')}
-            >
-              {playerHand.filter(card => card).map((card, index) => renderCard(card, index, 'player'))}
-            </div>
-            
-            {/* Controls */}
-            <div className="flex justify-center space-x-4 mt-auto">
-              {gameState === 'playing' && (
-                <>
-                  <button
-                    onClick={hit}
-                    disabled={playerScore >= 32}
-                    className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-lg focus:outline-none transition-all duration-200 active:scale-95 ${playerScore >= 32 ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
-                  >
-                    Hit
-                  </button>
-                  <button
-                    onClick={stand}
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-lg focus:outline-none transition-all duration-200 active:scale-95 hover:shadow-lg"
-                  >
-                    Stand
-                  </button>
-                  <button
-                    onClick={discardSelectedCard}
-                    disabled={discardTokens <= 0 || selectedCards.length !== 1}
-                    className={`flex items-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg text-lg focus:outline-none transition-all duration-200 active:scale-95 ${(discardTokens <= 0 || selectedCards.length !== 1) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
-                  >
-                    <Shield size={20} className="mr-2" /> Discard ({discardTokens})
-                  </button>
-                  {selectedCards.length > 0 && (
-                    <div className="text-white text-lg flex items-center bg-gray-800 px-3 py-1 rounded-lg">
-                      {selectedCards.length === 1 ? "1 card selected" : `${selectedCards.length} cards selected`}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Right side: Tarot cards (vertical layout) */}
-        <div className="col-span-2">
-          <div className="bg-purple-900 bg-opacity-50 rounded-lg p-4 shadow-lg">
-            <h2 className="text-xl font-bold mb-3">Tarot Cards</h2>
-            <div className="text-sm text-yellow-300 mb-4">
-              Drag to use or click to activate
-            </div>
-            
-            <div 
-              className="flex flex-col items-center"
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleTarotDrop(e, 'tarotArea')}
-            >
-              {consumableSlots.map((card, index) => renderTarotCard(card, index))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Debug Panel */}
-      <div className="absolute top-4 right-4 z-10">
-        <BlackjackDebug 
-          addCardToPlayer={card => setPlayerHand(prev => [...prev, card])}
-          addTarotCard={card => {
-            const emptySlotIndex = consumableSlots.findIndex(slot => slot === null);
-            if (emptySlotIndex !== -1) {
-              const newSlots = [...consumableSlots];
-              newSlots[emptySlotIndex] = card;
-              setConsumableSlots(newSlots);
-            }
-          }}
-          setDiscardTokens={setDiscardTokens}
-          discardTokens={discardTokens}
-          setWins={setWins}
-          wins={wins}
-          tarotCardDefinitions={tarotCardDefinitions}
-          setCoins={setCoins}
-          coins={coins}
-        />
-      </div>
-      
-      {/* Animating cards overlay */}
-      {animatingCards.map(card => (
-        <div 
-          key={card.id}
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-28 h-40 bg-white border-2 border-gray-300 rounded-lg shadow-xl animate-discard z-50"
-        >
-          <div className={`flex flex-col items-center ${card.color}`}>
-            <div className="text-3xl font-bold">{card.value}</div>
-            <div className="text-4xl">{card.suit}</div>
-          </div>
-        </div>
-      ))}
-      
-      {/* Dragged card preview - for better drag and drop feedback */}
-      <DraggedCardPreview />
-      
-      {/* Info Panel */}
-      {showInfo && <InfoPanel />}
-      
-      {/* Tarot Selection Modal */}
-      {showTarotSelection && <TarotSelectionModal />}
-    </div>
-  );
-};
-
-export default Blackjack;  return (
-    <div className="relative bg-green-800 text-white min-h-screen w-full overflow-hidden">
-      <style jsx global>{`
-        @keyframes dealCard {
-          0% {
-            opacity: 0;
-            transform: translateY(-100px) scale(0.5);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        @keyframes discardCard {
-          0% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: translateY(100px) rotate(180deg) scale(0.5);
-          }
-        }
-        @keyframes shuffle {
-          0% { transform: rotate(0deg); }
-          25% { transform: rotate(-5deg) translateY(-5px); }
-          50% { transform: rotate(0deg); }
-          75% { transform: rotate(5deg) translateY(-5px); }
-          100% { transform: rotate(0deg); }
-        }
-        .animate-deal {
-          animation: dealCard 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-        .animate-discard {
-          animation: discardCard 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-        .animate-shuffle {
-          animation: shuffle 0.8s ease-in-out;
-        }
-        .card-lift {
-          transition: transform 0.2s ease;
-        }
-        .card-lift:hover {
-          transform: translateY(-8px);
-        }
-      `}</style>
-      
-      {/* Header with title and info button */}
-      <div className="flex justify-between items-center p-4 bg-green-900">
-        <h1 className="text-3xl font-bold">Blackjack</h1>
-        <div className="flex items-center">
-          <button 
-            onClick={toggleInfo}
-            className="ml-4 bg-yellow-600 hover:bg-yellow-700 text-white rounded-full p-2 transition-colors"
-            title="Game Rules"
-          >
-            <Info size={24} />
-          </button>
-        </div>
-      </div>
-      
-      {/* Main gameplay area - using grid layout for better space utilization */}
-      <div className="grid grid-cols-12 gap-4 p-4 h-full">
-        {/* Left side: Game history */}
-        <div className="col-span-2">
-          {/* Scoreboard - compact version */}
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <div className="bg-blue-900 p-2 rounded-lg text-center">
-              <div className="text-sm font-bold">Score</div>
-              <div className="text-2xl">{wins}</div>
-            </div>
-            
-            <div className="bg-blue-900 p-2 rounded-lg text-center">
-              <div className="text-sm font-bold">Streak</div>
-              <div className="text-2xl">{winningStreak}</div>
-            </div>
-            
-            <div className="bg-blue-900 p-2 rounded-lg text-center">
-              <div className="text-sm font-bold">Tokens</div>
-              <div className="text-2xl">{discardTokens}</div>
-            </div>
-            
-            <div className="bg-blue-900 p-2 rounded-lg text-center">
-              <div className="text-sm font-bold">Till Tarot</div>
-              <div className="text-2xl">{tarotDrawCounter}</div>
-            </div>
-          </div>
-          
-          {/* Game history - compact version */}
-          {gameHistory.length > 0 && (
-            <div className="bg-gray-800 rounded-lg p-2 shadow-lg mb-4 overflow-hidden">
-              <h2 className="text-lg font-bold mb-2 border-b border-gray-700 pb-1">Game History</h2>
-              <div className="max-h-72 overflow-y-auto text-xs">
-                {gameHistory.map((game, index) => (
-                  <div key={index} className="border-b border-gray-700 py-1 flex flex-col">
-                    <div className={game.winner === 'Player' ? 'text-green-400' : game.winner === 'Dealer' ? 'text-red-400' : 'text-yellow-400'}>
-                      {game.winner} {game.winner !== 'Push' && 'wins'} ({game.reason})
-                    </div>
-                    <div className="text-gray-400">
-                      P: {game.playerScore} | D: {game.dealerScore}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Deck visualization */}
-          <div 
-            className={`w-full flex justify-center mb-4 ${isShuffling ? 'animate-shuffle' : ''}`}
-          >
-            <div className="relative w-20 h-32 border-2 border-white rounded-lg shadow-md overflow-hidden">
-              {/* Card stack effect */}
-              <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(2deg)' }}>
-                <CardBackPattern />
-              </div>
-              <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(-2deg)' }}>
-                <CardBackPattern />
-              </div>
-              <div className="absolute inset-0 rounded-lg">
-                <CardBackPattern />
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 text-sm text-white p-1 z-10 text-center bg-black bg-opacity-50">
-                {deckRef.current.length - removedCardsRef.current.size} cards
-              </div>
-            </div>
-          </div>
-        </div>  
-  // Tarot Selection Modal Component
-  const TarotSelectionModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-      <div className="bg-purple-900 rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto p-8 shadow-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-yellow-300">Choose a Tarot Card</h2>
-        </div>
-        
-        <div className="flex flex-wrap justify-center gap-8 mb-8">
-          {availableTarotCards.map((card, index) => (
-            <div 
-              key={`selection-${card.id}`}
-              onClick={() => selectTarotCard(card)}
-              className="relative w-40 h-64 border-2 border-yellow-600 rounded-lg overflow-hidden cursor-pointer bg-purple-800 shadow-lg hover:scale-105 transition-transform"
-            >
-              <div className="absolute inset-0 p-4 flex flex-col items-center justify-between">
-                <div className="text-yellow-300 text-xl font-bold">{card.name}</div>
-                
-                {/* Custom tarot card art based on the card type */}
-                <div className="flex-grow flex items-center justify-center">
-                  {card.id === 'death' && (
-                    <div className="text-purple-100 text-6xl">🪦</div>
-                  )}
-                  {card.id === 'hanged-man' && (
-                    <div className="text-purple-100 text-6xl transform rotate-180">🧍</div>
-                  )}
-                </div>
-                
-                <div className="text-white text-sm text-center">
-                  {card.description}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-  
-  // Info Panel Component
-  const InfoPanel = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-      <div className="bg-green-900 rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto p-8 shadow-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-white">Modified Blackjack Rules</h2>
-          <button 
-            onClick={toggleInfo}
-            className="text-white hover:text-yellow-300 transition-colors"
-          >
-            <X size={32} />
-          </button>
-        </div>
-        
-        <div className="text-white space-y-6 text-lg">
-          <div>
-            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Game Objective</h3>
-            <p>Get a hand value closer to 21 than the dealer without going over. Build a winning streak to earn points.</p>
-          </div>
-          
-          <div>
-            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Deck & Dealing</h3>
-            <p>A standard 52-card deck is used and reshuffled after each round. Cards are dealt from the same deck to both player and dealer.</p>
-          </div>
-          
-          <div>
-            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Special Rules</h3>
-            <ul className="list-disc pl-6 space-y-2">
-              <li><span className="font-bold">Discard System:</span> You have a limited number of discard tokens (starting with 5).</li>
-              <li><span className="font-bold">Discard Refill:</span> Every 3 wins, you earn 5 more discard tokens.</li>
-              <li><span className="font-bold">Winning Streak:</span> Game continues until you lose to the dealer, which resets your score to 0.</li>
-              <li><span className="font-bold">Over-Bust Rule:</span> If your score is over 21 but under 32, you can still hit after discarding.</li>
-              <li><span className="font-bold">Hard Bust:</span> If your score is 32 or higher, you cannot hit until discarding to get below 32.</li>
-              <li><span className="font-bold">Card Selection:</span> Select a card by clicking on it, then use the discard button to remove it.</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Tarot Card System</h3>
-            <ul className="list-disc pl-6 space-y-2">
-              <li><span className="font-bold">Earning Tarot Cards:</span> Every 5 wins, you earn a tarot card (if you have space).</li>
-              <li><span className="font-bold">Death Card:</span> Transforms the left selected card into the right selected card.</li>
-              <li><span className="font-bold">Hanged Man Card:</span> Removes two selected cards completely from your hand.</li>
-              <li><span className="font-bold">Using Tarot Cards:</span> Click or drag the tarot card to use its effect.</li>
-              <li><span className="font-bold">Card Slots:</span> You can hold a maximum of 2 tarot cards at a time.</li>
-              <li><span className="font-bold">Reset on Loss:</span> All tarot cards are lost when you lose to the dealer.</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Standard Blackjack Rules</h3>
-            <ul className="list-disc pl-6 space-y-2">
-              <li>Cards 2-10 are worth their face value</li>
-              <li>Face cards (J, Q, K) are worth 10</li>
-              <li>Aces are worth 11, but convert to 1 if the hand would bust</li>
-              <li>Dealer must hit on 16 or less and stand on 17 or more</li>
-              <li>Blackjack (an Ace and a 10-value card) beats all other 21-point hands</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Dragged card preview overlay for more responsive drag and drop
-  const DraggedCardPreview = () => {
-    if (!isDragging || !draggedCard) return null;
-    
-    return (
-      <div className="fixed top-0 left-0 z-50 pointer-events-none opacity-0">
-        <div className="w-28 h-40 bg-white border-2 border-blue-500 rounded-lg shadow-xl flex items-center justify-center">
-          <div className={`flex flex-col items-center ${draggedCard.color}`}>
-            <div className="text-3xl font-bold">{draggedCard.value}</div>
-            <div className="text-4xl">{draggedCard.suit}</div>
-          </div>
-        </div>
-      </div>
-    );
-  };  
-  // Initialize the game
-  useEffect(() => {
-    console.log("Initializing new game");
-    startNewRound();
-    
-    // Add error listener
-    window.addEventListener('error', (event) => {
-      console.error('Caught error:', event.message);
-    });
-    
-    return () => {
-      window.removeEventListener('error', () => {});
-    };
-  }, []);
-  
-  // Remove animation flag from cards
-  useEffect(() => {
-    if (playerHand.length > 0 || dealerHand.length > 0) {
-      const timer = setTimeout(() => {
-        if (playerHand.some(card => card && card.isNew)) {
-          setPlayerHand(prevHand => 
-            prevHand.map(card => card ? { ...card, isNew: false } : card)
-          );
-        }
-        if (dealerHand.some(card => card && card.isNew)) {
-          setDealerHand(prevHand => 
-            prevHand.map(card => card ? { ...card, isNew: false } : card)
-          );
-        }
-      }, 600);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [playerHand, dealerHand, animationIndex]);
-  
-  // Render a card
-  const renderCard = (card, index, hand) => {
-    if (!card) return null;
-    
-    const isPlayerHand = hand === 'player';
-    const isNewCard = card.isNew || false;
-    const isSelected = isPlayerHand && selectedCards.includes(index);
-    const isHidden = card.hidden;
-    
-    // Calculate tilt angle for player cards
-    const getTilt = () => {
-      if (!isPlayerHand) return 'rotate-0';
-      
-      const tiltDirection = index % 2 === 0 ? -1 : 1;
-      const tiltAmount = Math.max(1, Math.min(3, Math.abs(index - (playerHand.length - 1)/2))) * tiltDirection;
-      
-      return `rotate-[${tiltAmount}deg]`;
-    };
-    
-    return (
-      <div 
-        key={`${hand}-${card.id || index}`}
-        onClick={() => isPlayerHand && gameState === 'playing' && toggleCardSelection(index)}
-        draggable={isPlayerHand && gameState === 'playing'}
-        onDragStart={(e) => isPlayerHand && handleDragStart(e, index, 'player')}
-        onDragOver={handleDragOver}
-        onDrop={(e) => isPlayerHand && handleDrop(e, index)}
-        className={`relative flex items-center justify-center w-28 h-40 border-2 border-gray-300 rounded-lg shadow-md overflow-hidden
-          ${isPlayerHand && gameState === 'playing' ? 'cursor-grab active:cursor-grabbing hover:border-blue-500' : ''} 
-          ${isSelected ? 'border-yellow-400 border-4 shadow-lg' : ''}
-          ${getTilt()}
-          ${isNewCard ? 'animate-deal' : ''}
-          ${isDragging && draggedCardIndex === index ? 'opacity-50' : ''}
-          transition-all duration-200 ease-in-out hover:shadow-xl`}
-        style={{ 
-          margin: '-0.5rem',
-          transformOrigin: 'center bottom',
-          transform: `${isSelected ? 'translateY(-16px)' : 'translateY(0)'} ${isPlayerHand ? `rotate(${index % 2 === 0 ? -1 : 1}deg)` : 'rotate(0)'}`,
-          zIndex: isSelected ? 10 : index
-        }}
-      >
-        {/* Card face */}
-        <div className={`absolute inset-0 flex items-center justify-center bg-white ${isHidden ? 'hidden' : ''}`}>
-          <div className={`flex flex-col items-center ${card.color}`}>
-            <div className="text-3xl font-bold">{card.value}</div>
-            <div className="text-4xl">{card.suit}</div>
-          </div>
-        </div>
-        
-        {/* Card back with pattern */}
-        {isHidden && <CardBackPattern />}
-      </div>
-    );
-  };
-  
-  // Render a tarot card
-  const renderTarotCard = (card, index) => {
-    if (!card) {
-      // Empty slot
-      return (
-        <div 
-          key={`tarot-empty-${index}`}
-          className="relative w-24 h-36 border-2 border-gray-300 border-dashed rounded-lg bg-gray-100 bg-opacity-20 flex items-center justify-center mb-4 shadow-md"
-        >
-          <span className="text-white opacity-50 text-lg">Empty</span>
-        </div>
-      );
-    }
-    
-    return (
-      <div 
-        key={`tarot-${card.id}`}
-        className="relative w-24 h-36 border-2 border-yellow-600 rounded-lg overflow-hidden cursor-grab bg-purple-900 shadow-lg mb-4 hover:shadow-xl transition-all duration-200 active:scale-95"
-        draggable={gameState === 'playing'}
-        onDragStart={(e) => handleDragStart(e, index, 'consumable')}
-        onClick={() => gameState === 'playing' && useTarotCard(index)}
-      >
-        <div className="absolute inset-0 p-2 flex flex-col items-center justify-between">
-          <div className="text-yellow-300 text-sm font-bold">{card.name}</div>
-          
-          {/* Custom tarot card art based on the card type */}
-          <div className="flex-grow flex items-center justify-center">
-            {card.id === 'death' && (
-              <div className="text-purple-100 text-5xl transform">🪦</div>
-            )}
-            {card.id === 'hanged-man' && (
-              <div className="text-purple-100 text-5xl transform rotate-180">🧍</div>
-            )}
-          </div>
-          
-          <div className="text-yellow-300 text-sm text-center">
-            {card.id === 'death' ? 'Transform' : 'Remove'}
-          </div>
-        </div>
-      </div>
-    );
-  };  
-  // Handle drag start for playing cards
-  const handleDragStart = (e, index, type) => {
-    if (gameState !== 'playing') return;
-    
-    // Set data for drag operation
-    if (type === 'player') {
-      setDraggedCardIndex(index);
-      setDragSourceType('player');
-      setDraggedCard(playerHand[index]); // Store the card being dragged
-      e.dataTransfer.setData('text/plain', `player-${index}`);
-    } else if (type === 'consumable') {
-      setDraggedTarotCardIndex(index);
-      setDragSourceType('consumable');
-      e.dataTransfer.setData('text/plain', `consumable-${index}`);
-    }
-    
-    setIsDragging(true);
-    
-    // Make dragging more responsive with a custom ghost image
-    if (type === 'player') {
-      // Create a custom drag image/ghost that's full-sized
-      const dragEl = document.createElement('div');
-      dragEl.className = 'card-ghost';
-      dragEl.style.width = '112px'; // w-28 in pixels
-      dragEl.style.height = '160px'; // h-40 in pixels
-      dragEl.style.background = 'white';
-      dragEl.style.border = '2px solid #4299e1';
-      dragEl.style.borderRadius = '8px';
-      dragEl.style.display = 'flex';
-      dragEl.style.alignItems = 'center';
-      dragEl.style.justifyContent = 'center';
-      dragEl.style.fontSize = '24px';
-      dragEl.style.color = playerHand[index].color === 'text-red-600' ? '#e53e3e' : '#000';
-      dragEl.style.position = 'absolute';
-      dragEl.style.top = '-1000px';
-      dragEl.style.opacity = '0.9';
-      dragEl.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-      
-      const cardContent = document.createElement('div');
-      cardContent.style.display = 'flex';
-      cardContent.style.flexDirection = 'column';
-      cardContent.style.alignItems = 'center';
-      
-      const cardValue = document.createElement('div');
-      cardValue.textContent = playerHand[index].value;
-      cardValue.style.fontSize = '36px';
-      cardValue.style.fontWeight = 'bold';
-      
-      const cardSuit = document.createElement('div');
-      cardSuit.textContent = playerHand[index].suit;
-      cardSuit.style.fontSize = '48px';
-      
-      cardContent.appendChild(cardValue);
-      cardContent.appendChild(cardSuit);
-      dragEl.appendChild(cardContent);
-      
-      document.body.appendChild(dragEl);
-      e.dataTransfer.setDragImage(dragEl, 56, 80); // Center the drag image
-      
-      setTimeout(() => {
-        document.body.removeChild(dragEl);
-      }, 0);
-    }
-  };
-  
-  // Handle drag over
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-  
-  // Handle drop for card reordering
-  const handleDrop = (e, targetIndex) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const data = e.dataTransfer.getData('text/plain');
-    
-    // Handle player card rearrangement
-    if (data.startsWith('player-') && dragSourceType === 'player' && draggedCardIndex !== null) {
-      const sourceIndex = draggedCardIndex;
-      
-      // Don't do anything if dropping on the same card
-      if (sourceIndex === targetIndex) return;
-      
-      // Create a new hand with reordered cards
-      const newHand = [...playerHand];
-      const [movedCard] = newHand.splice(sourceIndex, 1);
-      newHand.splice(targetIndex, 0, movedCard);
-      
-      setPlayerHand(newHand);
-      
-      // Adjust selected cards if needed
-      setSelectedCards(prevSelected => {
-        return prevSelected.map(index => {
-          if (index === sourceIndex) return targetIndex;
-          if (sourceIndex < index && index <= targetIndex) return index - 1;
-          if (sourceIndex > index && index >= targetIndex) return index + 1;
-          return index;
-        });
-      });
-    }
-    
-    // Reset drag state
-    setDraggedCardIndex(null);
-    setDraggedTarotCardIndex(null);
-    setDragSourceType(null);
-    setDraggedCard(null);
-  };
-  
-  // Handle drop for tarot card usage
-  const handleTarotDrop = (e, targetArea) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const data = e.dataTransfer.getData('text/plain');
-    
-    // Handle tarot card usage
-    if (data.startsWith('consumable-') && dragSourceType === 'consumable' && draggedTarotCardIndex !== null) {
-      const slotIndex = draggedTarotCardIndex;
-      
-      // Use the tarot card
-      useTarotCard(slotIndex);
-    }
-    
-    // Reset drag state
-    setDraggedCardIndex(null);
-    setDraggedTarotCardIndex(null);
-    setDragSourceType(null);
-    setDraggedCard(null);
-  };
-  
-  // Toggle info panel
-  const toggleInfo = () => {
-    setShowInfo(!showInfo);
-  };  
-  // Determine who won the round
-  const determineWinner = (finalDealerScore) => {
-    setTimeout(() => {
-      if (finalDealerScore > 21) {
-        // Dealer busts, player wins
-        setMessage('Dealer busts! You win!');
-        handleWin();
-        addGameToHistory('Player', 'Dealer bust');
-      } else if (finalDealerScore > playerScore) {
-        // Dealer has higher score, player loses
-        setMessage('Dealer wins! Your winning streak has ended.');
-        addGameToHistory('Dealer', 'Higher score');
-        setWinningStreak(0);
-        setTimeout(resetAfterLoss, 2000);
-      } else if (finalDealerScore < playerScore) {
-        // Player has higher score, player wins
-        setMessage('You win!');
-        handleWin();
-        addGameToHistory('Player', 'Higher score');
-      } else {
-        // Same score, it's a push
-        setMessage("It's a push! Your streak continues.");
-        addGameToHistory('Push', 'Equal scores');
-        setTimeout(startNewRound, 2000);
-      }
-      
-      setGameState('result');
-    }, 800);
-  };
-  
-  // Handle player win
-  const handleWin = () => {
-    // Increase score and winning streak
-    const newWins = wins + 1;
-    const newStreak = winningStreak + 1;
-    
-    setWins(newWins);
-    setWinningStreak(newStreak);
-    
-    // Award coins for win - adding this functionality for compatibility
-    setCoins(prev => prev + 1);
-    
-    // Check if player earned new discard tokens
-    let newWinsUntilRefill = winsUntilRefill - 1;
-    let newDiscardTokens = discardTokens;
-    
-    if (newWinsUntilRefill <= 0) {
-      newDiscardTokens += 5;
-      newWinsUntilRefill = 3;
-      setMessage(prevMessage => `${prevMessage} You earned 5 discard tokens!`);
-    }
-    
-    setWinsUntilRefill(newWinsUntilRefill);
-    setDiscardTokens(newDiscardTokens);
-    
-    // Check if player should draw a Tarot card
-    let newTarotDrawCounter = tarotDrawCounter - 1;
-    if (newTarotDrawCounter <= 0) {
-      // Reset counter
-      newTarotDrawCounter = 5; 
-      
-      // Check if player has space for a tarot card
-      if (consumableSlots.some(slot => slot === null)) {
-        setTimeout(() => {
-          setMessage("You've earned a Tarot card! Choose one to add to your consumables.");
-          drawTarotSelection();
-        }, 1000);
-        setTarotDrawCounter(newTarotDrawCounter);
-        return; // Don't start a new round yet
-      } else {
-        setMessage(prevMessage => `${prevMessage} You would earn a Tarot card, but your slots are full!`);
-      }
-    }
-    
-    setTarotDrawCounter(newTarotDrawCounter);
-    
-    // Start new round after delay if we're not drawing tarot cards
-    setTimeout(startNewRound, 2000);
-  };
-  
-  // Reset game after a loss
-  const resetAfterLoss = () => {
-    setWins(0);
-    setWinningStreak(0);
-    setConsumableSlots([null, null]); // Clear tarot cards when losing
-    removedCardsRef.current.clear(); // Reset the permanently removed cards
-    startNewRound();
-  };
-  
-  // Add game to history
-  const addGameToHistory = (winner, reason) => {
-    const newHistory = [
-      { 
-        winner, 
-        reason, 
-        playerScore: playerScore, 
-        dealerScore: dealerScore,
-        playerHand: [...playerHand], 
-        dealerHand: [...dealerHand].map(card => ({...card, hidden: false}))
-      },
-      ...gameHistory
-    ].slice(0, 10); // Keep only the 10 most recent games
-    
-    setGameHistory(newHistory);
-  };
-  
-  // Toggle card selection
-  const toggleCardSelection = (index) => {
-    if (gameState !== 'playing') return;
-    
-    setSelectedCards(prev => {
-      // If card is already selected, remove it
-      if (prev.includes(index)) {
-        return prev.filter(i => i !== index);
-      } 
-      // Otherwise add it to selection
-      else {
-        return [...prev, index];
-      }
-    });
-  };
-  
-  // Discard selected card
-  const discardSelectedCard = () => {
-    if (gameState !== 'playing' || discardTokens <= 0 || selectedCards.length !== 1) return;
-    
-    const index = selectedCards[0];
-    const newHand = [...playerHand];
-    const discardedCard = newHand.splice(index, 1)[0];
-    
-    // Animation for card going back to deck
-    setAnimatingCards([{ 
-      ...discardedCard, 
-      id: Date.now(),
-      type: 'discard'
-    }]);
-    
-    setTimeout(() => {
-      setAnimatingCards([]);
-    }, 600);
-    
-    setPlayerHand(newHand);
-    setSelectedCards([]);
-    
-    const newScore = calculateScore(newHand);
-    setPlayerScore(newScore);
-    
-    setDiscardTokens(discardTokens - 1);
-    
-    if (newScore > 21) {
-      if (newScore >= 32) {
-        setMessage('Still bust! Score is over 32. Discard more cards to continue hitting.');
-      } else {
-        setMessage('Still bust, but you can hit again! Score is below 32.');
-      }
-    } else {
-      setMessage('Card discarded! Your move: Hit or Stand?');
-    }
-  };import React, { useState, useEffect, useRef } from 'react';
-import { Shield, RefreshCw, X, Info, Award, Trash2 } from 'lucide-react';
-
-import BlackjackDebug from './BlackjackDebug';
+import React, { useState, useEffect, useRef } from 'react';
+import { Shield, RefreshCw, X, Info, Award, Trash2, ShoppingCart, Coins, PlusCircle } from 'lucide-react';
 
 const Blackjack = () => {
   // Game state
@@ -832,8 +21,11 @@ const Blackjack = () => {
   const [animationIndex, setAnimationIndex] = useState(0);
   const [selectedCards, setSelectedCards] = useState([]);
   const [showInfo, setShowInfo] = useState(false);
-  // Added coins state for compatibility with the updated BlackjackDebug
-  const [coins, setCoins] = useState(10);
+  
+  // Shop system state
+  const [coins, setCoins] = useState(10); // Starting with 10 coins to let the player buy something immediately
+  const [shopItems, setShopItems] = useState([]);
+  const [discardsUsed, setDiscardsUsed] = useState(false);
   
   // Tarot-specific state
   const [tarotDrawCounter, setTarotDrawCounter] = useState(5);
@@ -898,6 +90,94 @@ const Blackjack = () => {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
+  };
+  
+  // Generate shop items
+  const generateShopItems = () => {
+    const suits = ['♥', '♦', '♠', '♣'];
+    const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    const newShopItems = [];
+    
+    // Generate 3 random playing cards
+    for (let i = 0; i < 3; i++) {
+      const randomSuit = suits[Math.floor(Math.random() * suits.length)];
+      const randomValue = values[Math.floor(Math.random() * values.length)];
+      const isAce = randomValue === 'A';
+      
+      newShopItems.push({
+        type: 'card',
+        value: randomValue,
+        suit: randomSuit,
+        color: randomSuit === '♥' || randomSuit === '♦' ? 'text-red-600' : 'text-black',
+        price: isAce ? 4 : 2,
+        id: `shop-${randomValue}-${randomSuit}-${Date.now()}-${i}`
+      });
+    }
+    
+    // Add 1 random tarot card
+    const randomTarotIndex = Math.floor(Math.random() * tarotCardDefinitions.length);
+    newShopItems.push({
+      type: 'tarot',
+      tarotCard: tarotCardDefinitions[randomTarotIndex],
+      price: 5,
+      id: `shop-tarot-${tarotCardDefinitions[randomTarotIndex].id}-${Date.now()}`
+    });
+    
+    // Add discard tokens
+    newShopItems.push({
+      type: 'token',
+      amount: 1,
+      price: 3,
+      id: `shop-token-${Date.now()}`
+    });
+    
+    return newShopItems;
+  };
+  
+  // Buy item from shop
+  const buyShopItem = (item) => {
+    if (coins < item.price) {
+      setMessage("Not enough coins to buy this item!");
+      return;
+    }
+    
+    // Process purchase based on item type
+    if (item.type === 'card') {
+      // Add card to deck
+      const newCard = {
+        suit: item.suit,
+        value: item.value,
+        hidden: false,
+        color: item.color,
+        id: `${item.value}-${item.suit}-purchased-${Date.now()}`
+      };
+      
+      deckRef.current.push(newCard);
+      setMessage(`Purchased ${item.value}${item.suit} card! Added to deck.`);
+    } 
+    else if (item.type === 'tarot') {
+      // Add tarot card to consumable slots if there's space
+      const emptySlotIndex = consumableSlots.findIndex(slot => slot === null);
+      
+      if (emptySlotIndex !== -1) {
+        const newSlots = [...consumableSlots];
+        newSlots[emptySlotIndex] = item.tarotCard;
+        setConsumableSlots(newSlots);
+        setMessage(`Purchased ${item.tarotCard.name} tarot card!`);
+      } else {
+        setMessage("Consumable slots are full! Cannot purchase tarot card.");
+        return; // Don't deduct coins if purchase fails
+      }
+    } 
+    else if (item.type === 'token') {
+      // Add discard tokens
+      setDiscardTokens(prev => prev + item.amount);
+      setMessage(`Purchased ${item.amount} discard token!`);
+    }
+    
+    // Deduct coins and remove item from shop
+    setCoins(prev => prev - item.price);
+    setShopItems(prev => prev.filter(shopItem => shopItem.id !== item.id));
   };
   
   // Draw 10 random tarot cards for selection
@@ -1013,6 +293,9 @@ const Blackjack = () => {
     setSelectedCards([]);
     setPlayerBlackjack(false);
     setDealerBlackjack(false);
+    
+    // Reset the discard usage tracker for the new round
+    setDiscardsUsed(false);
     
     // Create and shuffle a brand new deck
     const freshDeck = createFreshDeck();
@@ -1301,3 +584,983 @@ const Blackjack = () => {
     
     dealerDrawSequence();
   };
+  
+  // Determine who won the round
+  const determineWinner = (finalDealerScore) => {
+    setTimeout(() => {
+      if (finalDealerScore > 21) {
+        // Dealer busts, player wins
+        setMessage('Dealer busts! You win!');
+        handleWin();
+        addGameToHistory('Player', 'Dealer bust');
+      } else if (finalDealerScore > playerScore) {
+        // Dealer has higher score, player loses
+        setMessage('Dealer wins! Your winning streak has ended.');
+        addGameToHistory('Dealer', 'Higher score');
+        setWinningStreak(0);
+        setTimeout(resetAfterLoss, 2000);
+      } else if (finalDealerScore < playerScore) {
+        // Player has higher score, player wins
+        setMessage('You win!');
+        handleWin();
+        addGameToHistory('Player', 'Higher score');
+      } else {
+        // Same score, it's a push
+        setMessage("It's a push! Your streak continues.");
+        addGameToHistory('Push', 'Equal scores');
+        setTimeout(startNewRound, 2000);
+      }
+      
+      setGameState('result');
+    }, 800);
+  };
+  
+  // Handle player win
+  const handleWin = () => {
+    // Increase score and winning streak
+    const newWins = wins + 1;
+    const newStreak = winningStreak + 1;
+    
+    setWins(newWins);
+    setWinningStreak(newStreak);
+    
+    // Award coins - 1 for winning, 2 bonus if no discards were used
+    let coinsEarned = 1;
+    if (!discardsUsed) {
+      coinsEarned += 2;
+      setMessage(prevMessage => `${prevMessage} +3 coins (no discards bonus)!`);
+    } else {
+      setMessage(prevMessage => `${prevMessage} +1 coin!`);
+    }
+    setCoins(prev => prev + coinsEarned);
+    
+    // Generate new shop items
+    setShopItems(generateShopItems());
+    
+    // Check if player earned new discard tokens
+    let newWinsUntilRefill = winsUntilRefill - 1;
+    let newDiscardTokens = discardTokens;
+    
+    if (newWinsUntilRefill <= 0) {
+      newDiscardTokens += 5;
+      newWinsUntilRefill = 3;
+      setMessage(prevMessage => `${prevMessage} You earned 5 discard tokens!`);
+    }
+    
+    setWinsUntilRefill(newWinsUntilRefill);
+    setDiscardTokens(newDiscardTokens);
+    
+    // Check if player should draw a Tarot card
+    let newTarotDrawCounter = tarotDrawCounter - 1;
+    if (newTarotDrawCounter <= 0) {
+      // Reset counter
+      newTarotDrawCounter = 5; 
+      
+      // Check if player has space for a tarot card
+      if (consumableSlots.some(slot => slot === null)) {
+        setTimeout(() => {
+          setMessage("You've earned a Tarot card! Choose one to add to your consumables.");
+          drawTarotSelection();
+        }, 1000);
+        setTarotDrawCounter(newTarotDrawCounter);
+        return; // Don't start a new round yet
+      } else {
+        setMessage(prevMessage => `${prevMessage} You would earn a Tarot card, but your slots are full!`);
+      }
+    }
+    
+    setTarotDrawCounter(newTarotDrawCounter);
+    
+    // Start new round after delay if we're not drawing tarot cards
+    setTimeout(startNewRound, 2000);
+  };
+  
+  // Reset game after a loss
+  const resetAfterLoss = () => {
+    setWins(0);
+    setWinningStreak(0);
+    setConsumableSlots([null, null]); // Clear tarot cards when losing
+    removedCardsRef.current.clear(); // Reset the permanently removed cards
+    startNewRound();
+  };
+  
+  // Add game to history
+  const addGameToHistory = (winner, reason) => {
+    const newHistory = [
+      { 
+        winner, 
+        reason, 
+        playerScore: playerScore, 
+        dealerScore: dealerScore,
+        playerHand: [...playerHand], 
+        dealerHand: [...dealerHand].map(card => ({...card, hidden: false}))
+      },
+      ...gameHistory
+    ].slice(0, 10); // Keep only the 10 most recent games
+    
+    setGameHistory(newHistory);
+  };
+  
+  // Toggle card selection
+  const toggleCardSelection = (index) => {
+    if (gameState !== 'playing') return;
+    
+    setSelectedCards(prev => {
+      // If card is already selected, remove it
+      if (prev.includes(index)) {
+        return prev.filter(i => i !== index);
+      } 
+      // Otherwise add it to selection
+      else {
+        return [...prev, index];
+      }
+    });
+  };
+  
+  // Discard selected card
+  const discardSelectedCard = () => {
+    if (gameState !== 'playing' || discardTokens <= 0 || selectedCards.length !== 1) return;
+    
+    const index = selectedCards[0];
+    const newHand = [...playerHand];
+    const discardedCard = newHand.splice(index, 1)[0];
+    
+    // Animation for card going back to deck
+    setAnimatingCards([{ 
+      ...discardedCard, 
+      id: Date.now(),
+      type: 'discard'
+    }]);
+    
+    setTimeout(() => {
+      setAnimatingCards([]);
+    }, 600);
+    
+    setPlayerHand(newHand);
+    setSelectedCards([]);
+    
+    const newScore = calculateScore(newHand);
+    setPlayerScore(newScore);
+    
+    setDiscardTokens(discardTokens - 1);
+    
+    // Track that discards were used in this round (for coin earning)
+    setDiscardsUsed(true);
+    
+    if (newScore > 21) {
+      if (newScore >= 32) {
+        setMessage('Still bust! Score is over 32. Discard more cards to continue hitting.');
+      } else {
+        setMessage('Still bust, but you can hit again! Score is below 32.');
+      }
+    } else {
+      setMessage('Card discarded! Your move: Hit or Stand?');
+    }
+  };
+  
+  // Handle drag start for playing cards
+  const handleDragStart = (e, index, type) => {
+    if (gameState !== 'playing') return;
+    
+    // Set data for drag operation
+    if (type === 'player') {
+      setDraggedCardIndex(index);
+      setDragSourceType('player');
+      setDraggedCard(playerHand[index]); // Store the card being dragged
+      e.dataTransfer.setData('text/plain', `player-${index}`);
+    } else if (type === 'consumable') {
+      setDraggedTarotCardIndex(index);
+      setDragSourceType('consumable');
+      e.dataTransfer.setData('text/plain', `consumable-${index}`);
+    }
+    
+    setIsDragging(true);
+    
+    // Make dragging more responsive with a custom ghost image
+    if (type === 'player') {
+      // Create a custom drag image/ghost that's full-sized
+      const dragEl = document.createElement('div');
+      dragEl.className = 'card-ghost';
+      dragEl.style.width = '112px'; // w-28 in pixels
+      dragEl.style.height = '160px'; // h-40 in pixels
+      dragEl.style.background = 'white';
+      dragEl.style.border = '2px solid #4299e1';
+      dragEl.style.borderRadius = '8px';
+      dragEl.style.display = 'flex';
+      dragEl.style.alignItems = 'center';
+      dragEl.style.justifyContent = 'center';
+      dragEl.style.fontSize = '24px';
+      dragEl.style.color = playerHand[index].color === 'text-red-600' ? '#e53e3e' : '#000';
+      dragEl.style.position = 'absolute';
+      dragEl.style.top = '-1000px';
+      dragEl.style.opacity = '0.9';
+      dragEl.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+      
+      const cardContent = document.createElement('div');
+      cardContent.style.display = 'flex';
+      cardContent.style.flexDirection = 'column';
+      cardContent.style.alignItems = 'center';
+      
+      const cardValue = document.createElement('div');
+      cardValue.textContent = playerHand[index].value;
+      cardValue.style.fontSize = '36px';
+      cardValue.style.fontWeight = 'bold';
+      
+      const cardSuit = document.createElement('div');
+      cardSuit.textContent = playerHand[index].suit;
+      cardSuit.style.fontSize = '48px';
+      
+      cardContent.appendChild(cardValue);
+      cardContent.appendChild(cardSuit);
+      dragEl.appendChild(cardContent);
+      
+      document.body.appendChild(dragEl);
+      e.dataTransfer.setDragImage(dragEl, 56, 80); // Center the drag image
+      
+      setTimeout(() => {
+        document.body.removeChild(dragEl);
+      }, 0);
+    }
+  };
+  
+  // Handle drag over
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+  
+  // Handle drop for card reordering
+  const handleDrop = (e, targetIndex) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const data = e.dataTransfer.getData('text/plain');
+    
+    // Handle player card rearrangement
+    if (data.startsWith('player-') && dragSourceType === 'player' && draggedCardIndex !== null) {
+      const sourceIndex = draggedCardIndex;
+      
+      // Don't do anything if dropping on the same card
+      if (sourceIndex === targetIndex) return;
+      
+      // Create a new hand with reordered cards
+      const newHand = [...playerHand];
+      const [movedCard] = newHand.splice(sourceIndex, 1);
+      newHand.splice(targetIndex, 0, movedCard);
+      
+      setPlayerHand(newHand);
+      
+      // Adjust selected cards if needed
+      setSelectedCards(prevSelected => {
+        return prevSelected.map(index => {
+          if (index === sourceIndex) return targetIndex;
+          if (sourceIndex < index && index <= targetIndex) return index - 1;
+          if (sourceIndex > index && index >= targetIndex) return index + 1;
+          return index;
+        });
+      });
+    }
+    
+    // Reset drag state
+    setDraggedCardIndex(null);
+    setDraggedTarotCardIndex(null);
+    setDragSourceType(null);
+    setDraggedCard(null);
+  };
+  
+  // Handle drop for tarot card usage
+  const handleTarotDrop = (e, targetArea) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const data = e.dataTransfer.getData('text/plain');
+    
+    // Handle tarot card usage
+    if (data.startsWith('consumable-') && dragSourceType === 'consumable' && draggedTarotCardIndex !== null) {
+      const slotIndex = draggedTarotCardIndex;
+      
+      // Use the tarot card
+      useTarotCard(slotIndex);
+    }
+    
+    // Reset drag state
+    setDraggedCardIndex(null);
+    setDraggedTarotCardIndex(null);
+    setDragSourceType(null);
+    setDraggedCard(null);
+  };
+  
+  // Toggle info panel
+  const toggleInfo = () => {
+    setShowInfo(!showInfo);
+  };
+  
+  // Initialize the game
+  useEffect(() => {
+    console.log("Initializing new game");
+    
+    // Generate initial shop items
+    setShopItems(generateShopItems());
+    
+    startNewRound();
+    
+    // Add error listener
+    window.addEventListener('error', (event) => {
+      console.error('Caught error:', event.message);
+    });
+    
+    return () => {
+      window.removeEventListener('error', () => {});
+    };
+  }, []);
+  
+  // Remove animation flag from cards
+  useEffect(() => {
+    if (playerHand.length > 0 || dealerHand.length > 0) {
+      const timer = setTimeout(() => {
+        if (playerHand.some(card => card && card.isNew)) {
+          setPlayerHand(prevHand => 
+            prevHand.map(card => card ? { ...card, isNew: false } : card)
+          );
+        }
+        if (dealerHand.some(card => card && card.isNew)) {
+          setDealerHand(prevHand => 
+            prevHand.map(card => card ? { ...card, isNew: false } : card)
+          );
+        }
+      }, 600);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [playerHand, dealerHand, animationIndex]);
+  
+  // Render a card
+  const renderCard = (card, index, hand) => {
+    if (!card) return null;
+    
+    const isPlayerHand = hand === 'player';
+    const isNewCard = card.isNew || false;
+    const isSelected = isPlayerHand && selectedCards.includes(index);
+    const isHidden = card.hidden;
+    
+    // Calculate tilt angle for player cards
+    const getTilt = () => {
+      if (!isPlayerHand) return 'rotate-0';
+      
+      const tiltDirection = index % 2 === 0 ? -1 : 1;
+      const tiltAmount = Math.max(1, Math.min(3, Math.abs(index - (playerHand.length - 1)/2))) * tiltDirection;
+      
+      return `rotate-[${tiltAmount}deg]`;
+    };
+    
+    return (
+      <div 
+        key={`${hand}-${card.id || index}`}
+        onClick={() => isPlayerHand && gameState === 'playing' && toggleCardSelection(index)}
+        draggable={isPlayerHand && gameState === 'playing'}
+        onDragStart={(e) => isPlayerHand && handleDragStart(e, index, 'player')}
+        onDragOver={handleDragOver}
+        onDrop={(e) => isPlayerHand && handleDrop(e, index)}
+        className={`relative flex items-center justify-center w-28 h-40 border-2 border-gray-300 rounded-lg shadow-md overflow-hidden
+          ${isPlayerHand && gameState === 'playing' ? 'cursor-grab active:cursor-grabbing hover:border-blue-500' : ''} 
+          ${isSelected ? 'border-yellow-400 border-4 shadow-lg' : ''}
+          ${getTilt()}
+          ${isNewCard ? 'animate-deal' : ''}
+          ${isDragging && draggedCardIndex === index ? 'opacity-50' : ''}
+          transition-all duration-200 ease-in-out hover:shadow-xl`}
+        style={{ 
+          margin: '-0.5rem',
+          transformOrigin: 'center bottom',
+          transform: `${isSelected ? 'translateY(-16px)' : 'translateY(0)'} ${isPlayerHand ? `rotate(${index % 2 === 0 ? -1 : 1}deg)` : 'rotate(0)'}`,
+          zIndex: isSelected ? 10 : index
+        }}
+      >
+        {/* Card face */}
+        <div className={`absolute inset-0 flex items-center justify-center bg-white ${isHidden ? 'hidden' : ''}`}>
+          <div className={`flex flex-col items-center ${card.color}`}>
+            <div className="text-3xl font-bold">{card.value}</div>
+            <div className="text-4xl">{card.suit}</div>
+          </div>
+        </div>
+        
+        {/* Card back with pattern */}
+        {isHidden && <CardBackPattern />}
+      </div>
+    );
+  };
+  
+  // Render a tarot card
+  const renderTarotCard = (card, index) => {
+    if (!card) {
+      // Empty slot
+      return (
+        <div 
+          key={`tarot-empty-${index}`}
+          className="relative w-24 h-36 border-2 border-gray-300 border-dashed rounded-lg bg-gray-100 bg-opacity-20 flex items-center justify-center mb-4 shadow-md"
+        >
+          <span className="text-white opacity-50 text-lg">Empty</span>
+        </div>
+      );
+    }
+    
+    return (
+      <div 
+        key={`tarot-${card.id}`}
+        className="relative w-24 h-36 border-2 border-yellow-600 rounded-lg overflow-hidden cursor-grab bg-purple-900 shadow-lg mb-4 hover:shadow-xl transition-all duration-200 active:scale-95"
+        draggable={gameState === 'playing'}
+        onDragStart={(e) => handleDragStart(e, index, 'consumable')}
+        onClick={() => gameState === 'playing' && useTarotCard(index)}
+      >
+        <div className="absolute inset-0 p-2 flex flex-col items-center justify-between">
+          <div className="text-yellow-300 text-sm font-bold">{card.name}</div>
+          
+          {/* Custom tarot card art based on the card type */}
+          <div className="flex-grow flex items-center justify-center">
+            {card.id === 'death' && (
+              <div className="text-purple-100 text-5xl transform">🪦</div>
+            )}
+            {card.id === 'hanged-man' && (
+              <div className="text-purple-100 text-5xl transform rotate-180">🧍</div>
+            )}
+          </div>
+          
+          <div className="text-yellow-300 text-sm text-center">
+            {card.id === 'death' ? 'Transform' : 'Remove'}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  // Render shop item
+  const renderShopItem = (item) => {
+    // For playing card
+    if (item.type === 'card') {
+      return (
+        <div 
+          key={item.id}
+          onClick={() => buyShopItem(item)}
+          className={`relative w-28 h-40 border-2 ${coins >= item.price ? 'border-green-400 hover:border-green-300' : 'border-gray-500 opacity-70'} rounded-lg shadow-md overflow-hidden transition-all duration-150 ${coins >= item.price ? 'cursor-pointer hover:shadow-lg transform hover:-translate-y-1' : 'cursor-not-allowed'}`}
+        >
+          <div className="absolute inset-0 flex items-center justify-center bg-white">
+            <div className={`flex flex-col items-center ${item.color}`}>
+              <div className="text-3xl font-bold">{item.value}</div>
+              <div className="text-4xl">{item.suit}</div>
+            </div>
+          </div>
+          
+          {/* Price tag */}
+          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-80 text-white text-center py-1 flex items-center justify-center">
+            <Coins size={16} className="mr-1 text-yellow-400" /> {item.price}
+          </div>
+        </div>
+      );
+    }
+    
+    // For tarot card
+    if (item.type === 'tarot') {
+      return (
+        <div 
+          key={item.id}
+          onClick={() => buyShopItem(item)}
+          className={`relative w-28 h-40 border-2 ${coins >= item.price ? 'border-purple-500 hover:border-purple-400' : 'border-gray-500 opacity-70'} rounded-lg overflow-hidden bg-purple-900 shadow-md transition-all duration-150 ${coins >= item.price ? 'cursor-pointer hover:shadow-lg transform hover:-translate-y-1' : 'cursor-not-allowed'}`}
+        >
+          <div className="absolute inset-0 p-2 flex flex-col items-center justify-between">
+            <div className="text-yellow-300 text-sm font-bold">{item.tarotCard.name}</div>
+            
+            {/* Custom tarot card art */}
+            <div className="flex-grow flex items-center justify-center">
+              {item.tarotCard.id === 'death' && (
+                <div className="text-purple-100 text-5xl transform">🪦</div>
+              )}
+              {item.tarotCard.id === 'hanged-man' && (
+                <div className="text-purple-100 text-5xl transform rotate-180">🧍</div>
+              )}
+            </div>
+            
+            <div className="text-yellow-300 text-xs text-center">
+              {item.tarotCard.effect}
+            </div>
+          </div>
+          
+          {/* Price tag */}
+          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-80 text-white text-center py-1 flex items-center justify-center">
+            <Coins size={16} className="mr-1 text-yellow-400" /> {item.price}
+          </div>
+        </div>
+      );
+    }
+    
+    // For token
+    if (item.type === 'token') {
+      return (
+        <div 
+          key={item.id}
+          onClick={() => buyShopItem(item)}
+          className={`relative w-28 h-40 border-2 ${coins >= item.price ? 'border-blue-500 hover:border-blue-400' : 'border-gray-500 opacity-70'} rounded-lg shadow-md overflow-hidden bg-blue-800 transition-all duration-150 ${coins >= item.price ? 'cursor-pointer hover:shadow-lg transform hover:-translate-y-1' : 'cursor-not-allowed'}`}
+        >
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <Shield size={48} className="text-blue-200 mb-2" />
+            <div className="text-white text-xl font-bold">Discard</div>
+            <div className="text-white text-xl font-bold">Token</div>
+            <div className="text-white text-sm mt-2">+{item.amount} token</div>
+          </div>
+          
+          {/* Price tag */}
+          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-80 text-white text-center py-1 flex items-center justify-center">
+            <Coins size={16} className="mr-1 text-yellow-400" /> {item.price}
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+  
+  // Tarot Selection Modal Component
+  const TarotSelectionModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+      <div className="bg-purple-900 rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto p-8 shadow-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold text-yellow-300">Choose a Tarot Card</h2>
+        </div>
+        
+        <div className="flex flex-wrap justify-center gap-8 mb-8">
+          {availableTarotCards.map((card, index) => (
+            <div 
+              key={`selection-${card.id}`}
+              onClick={() => selectTarotCard(card)}
+              className="relative w-40 h-64 border-2 border-yellow-600 rounded-lg overflow-hidden cursor-pointer bg-purple-800 shadow-lg hover:scale-105 transition-transform"
+            >
+              <div className="absolute inset-0 p-4 flex flex-col items-center justify-between">
+                <div className="text-yellow-300 text-xl font-bold">{card.name}</div>
+                
+                {/* Custom tarot card art based on the card type */}
+                <div className="flex-grow flex items-center justify-center">
+                  {card.id === 'death' && (
+                    <div className="text-purple-100 text-6xl">🪦</div>
+                  )}
+                  {card.id === 'hanged-man' && (
+                    <div className="text-purple-100 text-6xl transform rotate-180">🧍</div>
+                  )}
+                </div>
+                
+                <div className="text-white text-sm text-center">
+                  {card.description}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+  
+  // Info Panel Component
+  // Info Panel Component - Reverted to scrollable version
+const InfoPanel = () => (
+  <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+    <div className="bg-green-900 rounded-lg max-w-4xl w-full h-96 overflow-y-auto p-8 shadow-2xl">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-white">Modified Blackjack Rules</h2>
+        <button 
+          onClick={toggleInfo}
+          className="text-white hover:text-yellow-300 transition-colors"
+        >
+          <X size={32} />
+        </button>
+      </div>
+      
+      <div className="text-white space-y-6 text-lg">
+        <div>
+          <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Game Objective</h3>
+          <p>Get a hand value closer to 21 than the dealer without going over. Build a winning streak to earn points.</p>
+        </div>
+        
+        <div>
+          <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Deck & Dealing</h3>
+          <p>A standard 52-card deck is used and reshuffled after each round. Cards are dealt from the same deck to both player and dealer.</p>
+        </div>
+        
+        <div>
+          <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Special Rules</h3>
+          <ul className="list-disc pl-6 space-y-2">
+            <li><span className="font-bold">Discard System:</span> You have a limited number of discard tokens (starting with 5).</li>
+            <li><span className="font-bold">Discard Refill:</span> Every 3 wins, you earn 5 more discard tokens.</li>
+            <li><span className="font-bold">Winning Streak:</span> Game continues until you lose to the dealer, which resets your score to 0.</li>
+            <li><span className="font-bold">Over-Bust Rule:</span> If your score is over 21 but under 32, you can still hit after discarding.</li>
+            <li><span className="font-bold">Hard Bust:</span> If your score is 32 or higher, you cannot hit until discarding to get below 32.</li>
+            <li><span className="font-bold">Card Selection:</span> Select a card by clicking on it, then use the discard button to remove it.</li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Tarot Card System</h3>
+          <ul className="list-disc pl-6 space-y-2">
+            <li><span className="font-bold">Earning Tarot Cards:</span> Every 5 wins, you earn a tarot card (if you have space).</li>
+            <li><span className="font-bold">Death Card:</span> Transforms the left selected card into the right selected card.</li>
+            <li><span className="font-bold">Hanged Man Card:</span> Removes two selected cards completely from your hand.</li>
+            <li><span className="font-bold">Using Tarot Cards:</span> Click or drag the tarot card to use its effect.</li>
+            <li><span className="font-bold">Card Slots:</span> You can hold a maximum of 2 tarot cards at a time.</li>
+            <li><span className="font-bold">Reset on Loss:</span> All tarot cards are lost when you lose to the dealer.</li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Shop System</h3>
+          <ul className="list-disc pl-6 space-y-2">
+            <li><span className="font-bold">Earning Coins:</span> Earn 1 coin for beating the dealer, plus 2 bonus coins if no discards were used.</li>
+            <li><span className="font-bold">Shop Refresh:</span> The shop refreshes after each win (not on pushes or when you bust).</li>
+            <li><span className="font-bold">Purchasing Cards:</span> You can buy cards to add to your deck for future rounds.</li>
+            <li><span className="font-bold">Shop Prices:</span>
+              <ul className="list-disc pl-6 mt-1">
+                <li>Regular playing cards: 2 coins</li>
+                <li>Ace cards: 4 coins</li>
+                <li>Tarot cards: 5 coins</li>
+                <li>Discard tokens: 3 coins</li>
+              </ul>
+            </li>
+            <li><span className="font-bold">Strategy:</span> Consider saving coins for powerful cards and tarot effects.</li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 className="text-2xl font-semibold mb-2 text-yellow-300">Standard Blackjack Rules</h3>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Cards 2-10 are worth their face value</li>
+            <li>Face cards (J, Q, K) are worth 10</li>
+            <li>Aces are worth 11, but convert to 1 if the hand would bust</li>
+            <li>Dealer must hit on 16 or less and stand on 17 or more</li>
+            <li>Blackjack (an Ace and a 10-value card) beats all other 21-point hands</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+  // Dragged card preview overlay for more responsive drag and drop
+  const DraggedCardPreview = () => {
+    if (!isDragging || !draggedCard) return null;
+    
+    return (
+      <div className="fixed top-0 left-0 z-50 pointer-events-none opacity-0">
+        <div className="w-28 h-40 bg-white border-2 border-blue-500 rounded-lg shadow-xl flex items-center justify-center">
+          <div className={`flex flex-col items-center ${draggedCard.color}`}>
+            <div className="text-3xl font-bold">{draggedCard.value}</div>
+            <div className="text-4xl">{draggedCard.suit}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="relative bg-green-800 text-white min-h-screen w-full overflow-hidden">
+      <style jsx global>{`
+        @keyframes dealCard {
+          0% {
+            opacity: 0;
+            transform: translateY(-100px) scale(0.5);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        @keyframes discardCard {
+          0% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(100px) rotate(180deg) scale(0.5);
+          }
+        }
+        @keyframes shuffle {
+          0% { transform: rotate(0deg); }
+          25% { transform: rotate(-5deg) translateY(-5px); }
+          50% { transform: rotate(0deg); }
+          75% { transform: rotate(5deg) translateY(-5px); }
+          100% { transform: rotate(0deg); }
+        }
+        .animate-deal {
+          animation: dealCard 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .animate-discard {
+          animation: discardCard 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .animate-shuffle {
+          animation: shuffle 0.8s ease-in-out;
+        }
+        .card-lift {
+          transition: transform 0.2s ease;
+        }
+        .card-lift:hover {
+          transform: translateY(-8px);
+        }
+        .shine-effect:hover {
+          position: relative;
+          overflow: hidden;
+        }
+        .shine-effect:hover::after {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -60%;
+          width: 200%;
+          height: 200%;
+          background: linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.3) 50%,
+            rgba(255, 255, 255, 0) 100%
+          );
+          transform: rotate(30deg);
+          animation: shine 1.5s infinite;
+        }
+        @keyframes shine {
+          from {
+            left: -60%;
+          }
+          to {
+            left: 100%;
+          }
+        }
+      `}</style>
+      
+      {/* Header with title, coins, and info button */}
+      <div className="flex justify-between items-center p-4 bg-green-900">
+        <h1 className="text-3xl font-bold">Balatrojack</h1>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center bg-yellow-800 px-3 py-1 rounded-lg">
+            <Coins size={20} className="text-yellow-400 mr-2" />
+            <span className="text-xl font-bold text-yellow-400">{coins}</span>
+          </div>
+          <button 
+            onClick={toggleInfo}
+            className="bg-yellow-600 hover:bg-yellow-700 text-white rounded-full p-2 transition-colors"
+            title="Game Rules"
+          >
+            <Info size={24} />
+          </button>
+        </div>
+      </div>
+      
+      {/* Main gameplay area - using grid layout for better space utilization */}
+      <div className="grid grid-cols-12 gap-4 p-4 h-full">
+        {/* Left side: Game history */}
+        <div className="col-span-2">
+          {/* Scoreboard - compact version */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="bg-blue-900 p-2 rounded-lg text-center">
+              <div className="text-sm font-bold">Score</div>
+              <div className="text-2xl">{wins}</div>
+            </div>
+            
+            <div className="bg-blue-900 p-2 rounded-lg text-center">
+              <div className="text-sm font-bold">Streak</div>
+              <div className="text-2xl">{winningStreak}</div>
+            </div>
+            
+            <div className="bg-blue-900 p-2 rounded-lg text-center">
+              <div className="text-sm font-bold">Tokens</div>
+              <div className="text-2xl">{discardTokens}</div>
+            </div>
+            
+            <div className="bg-blue-900 p-2 rounded-lg text-center">
+              <div className="text-sm font-bold">Till Tarot</div>
+              <div className="text-2xl">{tarotDrawCounter}</div>
+            </div>
+          </div>
+          
+          {/* Game history - compact version */}
+          <div className="bg-gray-800 rounded-lg p-2 shadow-lg mb-4 overflow-hidden">
+            <h2 className="text-lg font-bold mb-2 border-b border-gray-700 pb-1">Game History</h2>
+            <div className="max-h-64 overflow-y-auto text-xs">
+              {gameHistory.length > 0 ? (
+                gameHistory.map((game, index) => (
+                  <div key={index} className="border-b border-gray-700 py-1 flex flex-col">
+                    <div className={game.winner === 'Player' ? 'text-green-400' : game.winner === 'Dealer' ? 'text-red-400' : 'text-yellow-400'}>
+                      {game.winner} {game.winner !== 'Push' && 'wins'} ({game.reason})
+                    </div>
+                    <div className="text-gray-400">
+                      P: {game.playerScore} | D: {game.dealerScore}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-gray-400 py-2 text-center">
+                  Play a round to see history
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Center: Main game area */}
+        <div className="col-span-8 bg-green-700 rounded-lg p-4 shadow-lg flex flex-col">
+          {/* Dealer area */}
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-bold">Dealer</h2>
+              <div className="bg-white text-black px-3 py-1 rounded text-lg">Score: {dealerScore}</div>
+            </div>
+            
+            <div className="flex justify-center min-h-[160px] items-center">
+              {dealerHand.filter(card => card).map((card, index) => renderCard(card, index, 'dealer'))}
+            </div>
+          </div>
+          
+          {/* Message area */}
+          <div className="text-center py-2 mb-4 bg-green-900 rounded-lg">
+            <p className="text-xl">{message}</p>
+          </div>
+          
+          {/* Player area */}
+          <div className="flex-grow">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-bold">Player</h2>
+              <div className={`px-3 py-1 rounded text-lg ${playerScore > 21 ? 'bg-red-500' : 'bg-white text-black'}`}>
+                Score: {playerScore} {playerScore > 21 && '(Bust)'}
+              </div>
+            </div>
+            
+            <div 
+              className="flex justify-center min-h-[160px] items-center mb-4"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleTarotDrop(e, 'playArea')}
+            >
+              {playerHand.filter(card => card).map((card, index) => renderCard(card, index, 'player'))}
+            </div>
+            
+            {/* Controls */}
+            <div className="flex justify-center space-x-4 mt-auto">
+              {gameState === 'playing' && (
+                <>
+                  <button
+                    onClick={hit}
+                    disabled={playerScore >= 32}
+                    className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-lg focus:outline-none transition-all duration-200 active:scale-95 ${playerScore >= 32 ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                  >
+                    Hit
+                  </button>
+                  <button
+                    onClick={stand}
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-lg focus:outline-none transition-all duration-200 active:scale-95 hover:shadow-lg"
+                  >
+                    Stand
+                  </button>
+                  <button
+                    onClick={discardSelectedCard}
+                    disabled={discardTokens <= 0 || selectedCards.length !== 1}
+                    className={`flex items-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg text-lg focus:outline-none transition-all duration-200 active:scale-95 ${(discardTokens <= 0 || selectedCards.length !== 1) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                  >
+                    <Shield size={20} className="mr-2" /> Discard ({discardTokens})
+                  </button>
+                  {selectedCards.length > 0 && (
+                    <div className="text-white text-lg flex items-center bg-gray-800 px-3 py-1 rounded-lg">
+                      {selectedCards.length === 1 ? "1 card selected" : `${selectedCards.length} cards selected`}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Right side: Tarot cards (vertical layout) and Deck */}
+        <div className="col-span-2">
+          <div className="bg-purple-900 bg-opacity-50 rounded-lg p-4 shadow-lg mb-4">
+            <h2 className="text-xl font-bold mb-3">Tarot Cards</h2>
+            <div className="text-sm text-yellow-300 mb-4">
+              Drag to use or click to activate
+            </div>
+            
+            <div 
+              className="flex flex-col items-center"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleTarotDrop(e, 'tarotArea')}
+            >
+              {consumableSlots.map((card, index) => renderTarotCard(card, index))}
+            </div>
+          </div>
+          
+          {/* Deck visualization - now as big as playing cards */}
+          <div 
+            className={`flex justify-center mb-4 ${isShuffling ? 'animate-shuffle' : ''}`}
+          >
+            <div className="relative w-28 h-40 border-2 border-white rounded-lg shadow-md overflow-hidden">
+              {/* Card stack effect */}
+              <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(2deg)' }}>
+                <CardBackPattern />
+              </div>
+              <div className="absolute inset-0 rounded-lg" style={{ transform: 'rotate(-2deg)' }}>
+                <CardBackPattern />
+              </div>
+              <div className="absolute inset-0 rounded-lg">
+                <CardBackPattern />
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 text-sm text-white p-1 z-10 text-center bg-black bg-opacity-70">
+                {deckRef.current.length - removedCardsRef.current.size} cards
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Shop area at the bottom */}
+      <div className="mt-4 p-4 bg-gray-900 rounded-t-lg shadow-lg">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold flex items-center">
+            <ShoppingCart className="mr-2" /> Card Shop
+          </h2>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center bg-yellow-800 px-3 py-1 rounded-lg">
+              <Coins size={20} className="text-yellow-400 mr-2" />
+              <span className="text-xl font-bold text-yellow-400">{coins}</span>
+            </div>
+            <div className="text-sm text-gray-400">
+              Win to refresh shop | +1 coin per win, +2 bonus for no discards
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-center gap-6">
+          {shopItems.length > 0 ? (
+            shopItems.map(item => renderShopItem(item))
+          ) : (
+            <div className="text-gray-400 py-8 text-center">
+              Win a round to stock the shop with new items!
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Animating cards overlay */}
+      {animatingCards.map(card => (
+        <div 
+          key={card.id}
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-28 h-40 bg-white border-2 border-gray-300 rounded-lg shadow-xl animate-discard z-50"
+        >
+          <div className={`flex flex-col items-center ${card.color}`}>
+            <div className="text-3xl font-bold">{card.value}</div>
+            <div className="text-4xl">{card.suit}</div>
+          </div>
+        </div>
+      ))}
+      
+      {/* Dragged card preview - for better drag and drop feedback */}
+      <DraggedCardPreview />
+      
+      {/* Info Panel */}
+      {showInfo && <InfoPanel />}
+      
+      {/* Tarot Selection Modal */}
+      {showTarotSelection && <TarotSelectionModal />}
+    </div>
+  );
+};
+
+export default Blackjack;
