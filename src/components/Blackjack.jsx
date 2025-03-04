@@ -1255,6 +1255,35 @@ const Blackjack = () => {
           </div>
         </div>
       </div>
+
+      <div className="flex items-center space-x-4">
+  {/* Other header elements like coins counter */}
+  <BlackjackDebug 
+    addCardToPlayer={card => setPlayerHand(prev => [...prev, card])}
+    addTarotCard={card => {
+      const emptySlotIndex = consumableSlots.findIndex(slot => slot === null);
+      if (emptySlotIndex !== -1) {
+        const newSlots = [...consumableSlots];
+        newSlots[emptySlotIndex] = card;
+        setConsumableSlots(newSlots);
+      }
+    }}
+    setDiscardTokens={setDiscardTokens}
+    discardTokens={discardTokens}
+    setWins={setWins}
+    wins={wins}
+    tarotCardDefinitions={tarotCardDefinitions}
+    setCoins={setCoins}
+    coins={coins}
+  />
+  <button 
+    onClick={toggleInfo}
+    className="bg-yellow-600 hover:bg-yellow-700 text-white rounded-full p-2 transition-colors"
+    title="Game Rules"
+  >
+    <Info size={24} />
+  </button>
+</div>
       
       {/* Animating cards overlay */}
       {animatingCards.map(card => (
